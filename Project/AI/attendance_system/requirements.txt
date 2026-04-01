@@ -1,0 +1,30 @@
+# ─── Core ───────────────────────────────────────────────────
+torch>=2.0.0
+torchvision>=0.15.0
+
+# ─── Face analysis (detection + recognition + liveness) ─────
+insightface>=0.7.3          # RetinaFace detector + ArcFace embedder
+onnxruntime-gpu>=1.16.0     # GPU inference backend for insightface models
+
+# ─── Vector similarity search ────────────────────────────────
+faiss-gpu>=1.7.4            # Fast nearest-neighbor search on GPU
+# NOTE: if faiss-gpu install fails, use: pip install faiss-cpu
+
+# ─── Anti-spoofing (liveness detection) ─────────────────────
+# MiniFASNet is included via the silent-face-anti-spoofing clone
+# No pip package; we download weights manually (see setup.py)
+
+# ─── Tracking ────────────────────────────────────────────────
+filterpy>=1.4.5             # SORT tracker dependency
+scipy>=1.10.0
+
+# ─── Video / image handling ──────────────────────────────────
+opencv-python>=4.8.0
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# ─── Utilities ───────────────────────────────────────────────
+pandas>=2.0.0               # Attendance CSV output
+tqdm>=4.65.0                # Progress bars during enrollment
+pyyaml>=6.0                 # Config files
+colorlog>=6.7.0             # Colored terminal logging

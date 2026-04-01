@@ -1,0 +1,80 @@
+# config.yaml — Central configuration for the attendance pipeline.
+# Edit this file to tune thresholds, paths, and hardware settings.
+# All other scripts read from here — no need to dig into code.
+
+# ── Hardware ──────────────────────────────────────────────────────────────────
+device:
+  gpu_id: 0                   # CUDA device index (0 = first GPU)
+  use_gpu: true               # Set false to fall back to CPU
+
+# ── Face Detection (RetinaFace via InsightFace) ───────────────────────────────
+detection:
+  model_pack: "buffalo_l"     # 'buffalo_l' = ResNet100 ArcFace + RetinaFace-R50
+                              # 'buffalo_s' = lighter, faster, slightly less accurate
+  det_size: [640, 640]        # Input resolution for the detector.
+                              # Higher = finds smaller faces but slower.
+                              # For a classroom camera ~3m away, 640x640 is good.
+  det_thresh: 0.5             # Confidence threshold for face detection (0–1).
+                              # Lower = more detections, more false positives.
+  min_face_size: 40           # Minimum face height in pixels to consider.
+                              # Rejects tiny blurry faces far from camera.
+
+# ── Face Recognition (ArcFace) ────────────────────────────────────────────────
+recognition:
+  embedding_dim: 512          # ArcFace output vector size — do not change.
+  similarity_threshold: 0.45  # Cosine similarity threshold.
+                              # Above this → identity confirmed.
+                              # Below this → "unknown" face.
+                              # TUNING GUIDE:
+                              #   Start at 0.45. If you get false accepts
+                              #   (wrong student), raise to 0.50–0.55.
+                              #   If you get too many "unknown" for real students,
+                              #   lower to 0.40–0.42.
+  top_k: 1                    # Return top-K candidates from FAISS search.
+
+# ── Anti-Spoofing (MiniFASNet) ────────────────────────────────────────────────
+liveness:
+  enabled: true               # Set false to disable (not recommended in prod)
+  model_dir: "models/anti_spoof"
+  threshold: 0.7              # Liveness score threshold.
+                              # Score > threshold → real face.
+                              # Score ≤ threshold → spoof (photo/screen).
+  scale_factor: 2.7           # Crop scale for the anti-spoof model input.
+
+# ── Multi-Object Tracking (SORT) ─────────────────────────────────────────────
+tracking:
+  enabled: true               # Track faces across frames for temporal voting.
+  max_age: 30                 # Frames to keep a track alive without detection.
+  min_hits: 3                 # Min detections before a track is confirmed.
+  iou_threshold: 0.3          # IoU overlap for track association.
+
+# ── Temporal Voting ───────────────────────────────────────────────────────────
+voting:
+  min_frames_to_confirm: 5    # A student must be recognized in at least this
+                              # many frames before marked "present".
+                              # Prevents false positives from a lookalike
+                              # passing in front of the camera.
+
+# ── Paths ─────────────────────────────────────────────────────────────────────
+paths:
+  student_dir:    "data/students"      # Enrollment photos: data/students/<ID>_<Name>/
+  embeddings_dir: "data/embeddings"    # Saved FAISS index + metadata
+  faiss_index:    "data/embeddings/index.faiss"
+  metadata:       "data/embeddings/metadata.json"
+  logs_dir:       "logs"
+  output_dir:     "output"
+
+# ── Enrollment ────────────────────────────────────────────────────────────────
+enrollment:
+  augment: true               # Apply augmentations (brightness, flip) to
+                              # improve robustness with few photos per student.
+  min_photos_warning: 3       # Warn if a student has fewer than this many photos.
+
+# ── Output / Logging ─────────────────────────────────────────────────────────
+output:
+  draw_boxes: true            # Draw bounding boxes on the live camera feed.
+  draw_names: true            # Draw student names above boxes.
+  draw_similarity: true       # Show cosine similarity score next to name.
+  csv_path: "output/attendance.csv"
+  save_annotated_frames: false  # Save every processed frame as an image (heavy).
+  log_level: "INFO"           # DEBUG / INFO / WARNING
