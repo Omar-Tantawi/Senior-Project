@@ -12,8 +12,8 @@ class SchoolClassController extends Controller
     {
         $query = SchoolClass::with('schoolYear');
 
-        if ($request->filled('school_year_id')) {
-            $query->where('school_year_id', $request->school_year_id);
+        if ($request->filled('schoolyearid')) {
+            $query->where('schoolyearid', $request->schoolyearid);
         }
 
         return response()->json($query->get());
@@ -22,11 +22,11 @@ class SchoolClassController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'           => 'required|string|max:100',
-            'school_year_id' => 'required|exists:school_years,id',
+            'name'        => 'required|string|max:100',
+            'schoolyearid' => 'required|exists:schoolyear,schoolyearid',
         ]);
 
-        $class = SchoolClass::create($request->only(['name', 'school_year_id']));
+        $class = SchoolClass::create($request->only(['name', 'schoolyearid']));
 
         return response()->json($class->load('schoolYear'), 201);
     }
@@ -41,11 +41,11 @@ class SchoolClassController extends Controller
         $class = SchoolClass::findOrFail($id);
 
         $request->validate([
-            'name'           => 'sometimes|string|max:100',
-            'school_year_id' => 'sometimes|exists:school_years,id',
+            'name'         => 'sometimes|string|max:100',
+            'schoolyearid' => 'sometimes|exists:schoolyear,schoolyearid',
         ]);
 
-        $class->update($request->only(['name', 'school_year_id']));
+        $class->update($request->only(['name', 'schoolyearid']));
 
         return response()->json($class->load('schoolYear'));
     }

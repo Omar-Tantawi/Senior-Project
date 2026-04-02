@@ -6,35 +6,35 @@ use Illuminate\Database\Eloquent\Model;
 
 class AssessmentResult extends Model
 {
+    protected $table = 'assessmentresult';
+    protected $primaryKey = 'result_id';
+
     protected $fillable = [
         'assessment_id',
         'student_id',
         'score',
         'grade',
-        'published_at',
+        'publishedat',
     ];
 
     protected function casts(): array
     {
         return [
-            'score'        => 'float',
-            'published_at' => 'datetime',
+            'score'       => 'float',
+            'publishedat' => 'datetime',
         ];
     }
 
     public function assessment()
     {
-        return $this->belongsTo(Assessment::class);
+        return $this->belongsTo(Assessment::class, 'assessment_id', 'assessment_id');
     }
 
     public function student()
     {
-        return $this->belongsTo(Student::class)->with('user');
+        return $this->belongsTo(Student::class, 'student_id', 'id')->with('user');
     }
 
-    /**
-     * Auto-calculate letter grade from score percentage.
-     */
     public static function calculateGrade(float $score, float $maxScore): string
     {
         $pct = ($maxScore > 0) ? ($score / $maxScore) * 100 : 0;

@@ -13,6 +13,8 @@ use App\Http\Controllers\Admin\EnrollmentController;
 use App\Http\Controllers\Teacher\ScheduleController;
 use App\Http\Controllers\Teacher\HomeworkController;
 use App\Http\Controllers\Teacher\MessageController;
+use App\Http\Controllers\Student\HomeworkController as StudentHomeworkController;
+use App\Http\Controllers\Student\NotificationController as StudentNotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -81,4 +83,21 @@ Route::prefix('teacher')->group(function () {
     Route::get('/{teacherId}/messages',          [MessageController::class, 'sent']);
     Route::post('/{teacherId}/messages',         [MessageController::class, 'send']);
     Route::get('/{teacherId}/messages/{id}',     [MessageController::class, 'show']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Student Routes
+|--------------------------------------------------------------------------
+*/
+Route::prefix('student')->group(function () {
+
+    // Homework — view assigned homework
+    Route::get('/{studentId}/homework',      [StudentHomeworkController::class, 'index']);
+    Route::get('/{studentId}/homework/{id}', [StudentHomeworkController::class, 'show']);
+
+    // Notifications
+    Route::get('/{studentId}/notifications',                        [StudentNotificationController::class, 'index']);
+    Route::put('/{studentId}/notifications/{recipientId}/read',     [StudentNotificationController::class, 'markRead']);
+    Route::put('/{studentId}/notifications/read-all',               [StudentNotificationController::class, 'markAllRead']);
 });

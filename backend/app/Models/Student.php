@@ -31,11 +31,13 @@ class Student extends Model
 
     public function enrollments()
     {
-        return $this->hasMany(Enrollment::class);
+        return $this->hasMany(Enrollment::class, 'student_id', 'id');
     }
 
     public function activeEnrollment()
     {
-        return $this->hasOne(Enrollment::class)->where('status', 'active')->latestOfMany();
+        return $this->hasOne(Enrollment::class, 'student_id', 'id')
+            ->where('status', 'active')
+            ->latestOfMany('enrollment_id');
     }
 }

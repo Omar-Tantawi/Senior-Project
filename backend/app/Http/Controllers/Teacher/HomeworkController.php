@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use App\Models\Homework;
 use App\Models\Teacher;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class HomeworkController extends Controller
@@ -63,6 +64,8 @@ class HomeworkController extends Controller
             'due_date'    => 'required|date|after:today',
         ]);
 
+        $teacher = Teacher::with('user')->find($teacherId);
+
         $homework = Homework::create([
             'teacher_id'  => $teacherId,
             'subject_id'  => $request->subject_id,
@@ -72,7 +75,16 @@ class HomeworkController extends Controller
             'due_date'    => $request->due_date,
         ]);
 
-        return response()->json($homework->load(['subject', 'section.schoolClass']), 201);
+        $homework->load(['subject', 'section.schoolClass']);
+
+        // Notify all students enrolled in this section
+        app(NotificationService::class)->notifySection($request->section_id, [
+            'title'           => "New Homework: {$homework->title} ({$homework->subject->name}) — due {$homework->due_date->format('M d, Y')}",
+            'createdbyuserid' => $teacher->user_id,
+            'channel'         => 'app',
+        ]);
+
+        return response()->json($homework, 201);
     }
 
     /**

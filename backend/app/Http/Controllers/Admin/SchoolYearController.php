@@ -10,18 +10,16 @@ class SchoolYearController extends Controller
 {
     public function index()
     {
-        return response()->json(SchoolYear::latest()->get());
+        return response()->json(SchoolYear::latest('schoolyearid')->get());
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'name'       => 'required|string|max:50|unique:school_years,name',
-            'start_date' => 'required|date',
-            'end_date'   => 'required|date|after:start_date',
+            'name' => 'required|string|max:50|unique:schoolyear,name',
         ]);
 
-        $schoolYear = SchoolYear::create($request->only(['name', 'start_date', 'end_date']));
+        $schoolYear = SchoolYear::create($request->only(['name']));
 
         return response()->json($schoolYear, 201);
     }
@@ -36,12 +34,10 @@ class SchoolYearController extends Controller
         $schoolYear = SchoolYear::findOrFail($id);
 
         $request->validate([
-            'name'       => "sometimes|string|max:50|unique:school_years,name,{$id}",
-            'start_date' => 'sometimes|date',
-            'end_date'   => 'sometimes|date|after:start_date',
+            'name' => "sometimes|string|max:50|unique:schoolyear,name,{$id},schoolyearid",
         ]);
 
-        $schoolYear->update($request->only(['name', 'start_date', 'end_date']));
+        $schoolYear->update($request->only(['name']));
 
         return response()->json($schoolYear);
     }

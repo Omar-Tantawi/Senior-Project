@@ -6,16 +6,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class ScheduleSlot extends Model
 {
+    protected $table = 'scheduleslot';
+    protected $primaryKey = 'slot_id';
+
+    // Note: your table has no end_time column
     protected $fillable = [
         'schedule_id',
         'subject_id',
         'teacher_id',
-        'day_of_week',
-        'start_time',
-        'end_time',
+        'dayofweek',
+        'starttime',
     ];
 
-    // Day ordering for sorting
     public const DAY_ORDER = [
         'Monday'    => 1,
         'Tuesday'   => 2,
@@ -28,7 +30,7 @@ class ScheduleSlot extends Model
 
     public function schedule()
     {
-        return $this->belongsTo(Schedule::class);
+        return $this->belongsTo(Schedule::class, 'schedule_id', 'schedule_id');
     }
 
     public function subject()
@@ -38,6 +40,6 @@ class ScheduleSlot extends Model
 
     public function teacher()
     {
-        return $this->belongsTo(Teacher::class)->with('user');
+        return $this->belongsTo(Teacher::class, 'teacher_id', 'id')->with('user');
     }
 }

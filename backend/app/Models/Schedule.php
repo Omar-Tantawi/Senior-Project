@@ -6,15 +6,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class Schedule extends Model
 {
-    protected $fillable = ['section_id', 'term_name'];
+    protected $table = 'schedule';
+    protected $primaryKey = 'schedule_id';
+
+    protected $fillable = ['section_id', 'termname'];
 
     public function section()
     {
-        return $this->belongsTo(Section::class)->with('schoolClass');
+        return $this->belongsTo(Section::class, 'section_id', 'section_id')->with('schoolClass');
     }
 
     public function slots()
     {
-        return $this->hasMany(ScheduleSlot::class);
+        return $this->hasMany(ScheduleSlot::class, 'schedule_id', 'schedule_id');
     }
 }

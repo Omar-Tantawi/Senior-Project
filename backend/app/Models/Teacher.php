@@ -30,12 +30,12 @@ class Teacher extends Model
 
     public function assignments()
     {
-        return $this->hasMany(TeacherAssignment::class);
+        return $this->hasMany(TeacherAssignment::class, 'teacher_id', 'id');
     }
 
     public function subjects()
     {
-        return $this->belongsToMany(Subject::class, 'teacher_assignments')
+        return $this->belongsToMany(Subject::class, 'teacherassignment', 'teacher_id', 'subject_id')
                     ->distinct();
     }
 }

@@ -6,21 +6,24 @@ use Illuminate\Database\Eloquent\Model;
 
 class Assessment extends Model
 {
+    protected $table = 'assessment';
+    protected $primaryKey = 'assessment_id';
+
     protected $fillable = [
         'subject_id',
         'section_id',
         'title',
-        'created_by_user_id',
-        'assessment_type',
+        'createdbyteacherid',
+        'assessmenttype',
         'date',
-        'max_score',
+        'maxscore',
     ];
 
     protected function casts(): array
     {
         return [
             'date'      => 'date',
-            'max_score' => 'float',
+            'maxscore'  => 'float',
         ];
     }
 

@@ -12,8 +12,8 @@ class SectionController extends Controller
     {
         $query = Section::with('schoolClass.schoolYear');
 
-        if ($request->filled('school_class_id')) {
-            $query->where('school_class_id', $request->school_class_id);
+        if ($request->filled('class_id')) {
+            $query->where('class_id', $request->class_id);
         }
 
         return response()->json($query->get());
@@ -22,11 +22,11 @@ class SectionController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'school_class_id' => 'required|exists:school_classes,id',
-            'name'            => 'required|string|max:100',
+            'class_id' => 'required|exists:class,class_id',
+            'name'     => 'required|string|max:100',
         ]);
 
-        $section = Section::create($request->only(['school_class_id', 'name']));
+        $section = Section::create($request->only(['class_id', 'name']));
 
         return response()->json($section->load('schoolClass.schoolYear'), 201);
     }
@@ -41,11 +41,11 @@ class SectionController extends Controller
         $section = Section::findOrFail($id);
 
         $request->validate([
-            'school_class_id' => 'sometimes|exists:school_classes,id',
-            'name'            => 'sometimes|string|max:100',
+            'class_id' => 'sometimes|exists:class,class_id',
+            'name'     => 'sometimes|string|max:100',
         ]);
 
-        $section->update($request->only(['school_class_id', 'name']));
+        $section->update($request->only(['class_id', 'name']));
 
         return response()->json($section->load('schoolClass.schoolYear'));
     }

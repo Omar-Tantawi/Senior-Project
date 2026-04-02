@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class TeacherAssignment extends Model
 {
+    protected $table = 'teacherassignment';
+
     protected $fillable = ['teacher_id', 'section_id', 'subject_id'];
 
     public function teacher()

@@ -15,7 +15,7 @@ class ScheduleController extends Controller
      * Route: GET /api/teacher/{teacherId}/schedule
      *
      * Query params:
-     *   term_name - filter by term (optional, returns all terms if omitted)
+     *   termname - filter by term (optional)
      */
     public function index(int $teacherId, Request $request)
     {
@@ -24,23 +24,21 @@ class ScheduleController extends Controller
         $query = ScheduleSlot::with([
             'schedule.section.schoolClass.schoolYear',
             'subject',
-        ])
-        ->where('teacher_id', $teacherId);
+        ])->where('teacher_id', $teacherId);
 
-        if ($request->filled('term_name')) {
+        if ($request->filled('termname')) {
             $query->whereHas('schedule', function ($q) use ($request) {
-                $q->where('term_name', $request->term_name);
+                $q->where('termname', $request->termname);
             });
         }
 
         $slots = $query->get();
 
-        // Group by day in correct weekday order
         $dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
         $grouped = $slots
-            ->sortBy(fn ($s) => [$s->start_time])
-            ->groupBy('day_of_week')
+            ->sortBy('starttime')
+            ->groupBy('dayofweek')
             ->sortBy(fn ($_, $day) => array_search($day, $dayOrder));
 
         $schedule = $grouped->map(function ($daySlots, $day) {
@@ -48,14 +46,13 @@ class ScheduleController extends Controller
                 'day'   => $day,
                 'slots' => $daySlots->values()->map(function ($slot) {
                     return [
-                        'slot_id'    => $slot->id,
-                        'start_time' => $slot->start_time,
-                        'end_time'   => $slot->end_time,
-                        'subject'    => $slot->subject->name,
-                        'section'    => $slot->schedule->section->name,
-                        'grade'      => $slot->schedule->section->schoolClass->name,
-                        'school_year'=> $slot->schedule->section->schoolClass->schoolYear->name,
-                        'term'       => $slot->schedule->term_name,
+                        'slot_id'     => $slot->slot_id,
+                        'start_time'  => $slot->starttime,
+                        'subject'     => $slot->subject->name,
+                        'section'     => $slot->schedule->section->name,
+                        'grade'       => $slot->schedule->section->schoolClass->name,
+                        'school_year' => $slot->schedule->section->schoolClass->schoolYear->name,
+                        'term'        => $slot->schedule->termname,
                     ];
                 }),
             ];
@@ -63,7 +60,7 @@ class ScheduleController extends Controller
 
         return response()->json([
             'teacher'  => [
-                'id'   => $teacher->id,
+                'id'   => $teacher->teacher_id,
                 'name' => $teacher->user->name,
             ],
             'schedule' => $schedule,

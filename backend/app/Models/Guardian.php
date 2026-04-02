@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 // Named Guardian because "Parent" is a reserved word in PHP
 class Guardian extends Model
 {
-    protected $table = 'parents';
+    protected $table = 'parent';
 
     protected $fillable = ['user_id'];
 

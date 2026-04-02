@@ -37,7 +37,7 @@ class EnrollmentController extends Controller
     {
         $request->validate([
             'student_id' => 'required|exists:students,id',
-            'section_id' => 'required|exists:sections,id',
+            'section_id' => 'required|exists:section,section_id',
             'status'     => 'nullable|in:active,completed,dropped',
         ]);
 
