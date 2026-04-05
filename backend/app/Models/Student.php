@@ -40,4 +40,9 @@ class Student extends Model
             ->where('status', 'active')
             ->latestOfMany('enrollment_id');
     }
+
+    public function feeAccounts()
+    {
+        return $this->hasMany(StudentFeePlan::class, 'student_id', 'id');
+    }
 }

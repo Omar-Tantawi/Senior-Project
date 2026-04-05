@@ -19,6 +19,11 @@ use App\Http\Controllers\Admin\ScheduleController as AdminScheduleController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Admin\BehaviorLogController as AdminBehaviorLogController;
+use App\Http\Controllers\Admin\SalaryPaymentController;
+use App\Http\Controllers\Admin\FeePlanController;
+use App\Http\Controllers\Admin\StudentFeePlanController;
+use App\Http\Controllers\Admin\InvoiceController;
+use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Teacher\ScheduleController;
 use App\Http\Controllers\Teacher\HomeworkController;
 use App\Http\Controllers\Teacher\MessageController;
@@ -26,6 +31,7 @@ use App\Http\Controllers\Teacher\AttendanceController as TeacherAttendanceContro
 use App\Http\Controllers\Teacher\PerformanceReportController;
 use App\Http\Controllers\Teacher\BehaviorLogController;
 use App\Http\Controllers\Teacher\ProfileController as TeacherProfileController;
+use App\Http\Controllers\Teacher\SalaryController as TeacherSalaryController;
 use App\Http\Controllers\Student\HomeworkController as StudentHomeworkController;
 use App\Http\Controllers\Student\NotificationController as StudentNotificationController;
 use App\Http\Controllers\Student\MarksController as StudentMarksController;
@@ -44,6 +50,8 @@ use App\Http\Controllers\ParentControllers\ChildrenController;
 use App\Http\Controllers\ParentControllers\ProfileController as ParentProfileController;
 use App\Http\Controllers\ParentControllers\ChildHomeworkController;
 use App\Http\Controllers\ParentControllers\ChildScheduleController;
+use App\Http\Controllers\ParentControllers\InvoiceController as ParentInvoiceController;
+use App\Http\Controllers\ParentControllers\PaymentController as ParentPaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -161,6 +169,40 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/complaints',         [AdminComplaintController::class, 'index']);
         Route::get('/complaints/{id}',    [AdminComplaintController::class, 'show']);
         Route::put('/complaints/{id}',    [AdminComplaintController::class, 'update']);
+
+        // Salary Payments — record + manage teacher salaries
+        Route::get('/salary-payments',         [SalaryPaymentController::class, 'index']);
+        Route::post('/salary-payments',        [SalaryPaymentController::class, 'store']);
+        Route::get('/salary-payments/{id}',    [SalaryPaymentController::class, 'show']);
+        Route::put('/salary-payments/{id}',    [SalaryPaymentController::class, 'update']);
+        Route::delete('/salary-payments/{id}', [SalaryPaymentController::class, 'destroy']);
+
+        // Fee Plans — define tuition/fee structures per school year
+        Route::get('/fee-plans',         [FeePlanController::class, 'index']);
+        Route::post('/fee-plans',        [FeePlanController::class, 'store']);
+        Route::get('/fee-plans/{id}',    [FeePlanController::class, 'show']);
+        Route::put('/fee-plans/{id}',    [FeePlanController::class, 'update']);
+        Route::delete('/fee-plans/{id}', [FeePlanController::class, 'destroy']);
+
+        // Student Fee Plans — assign plans to students, track balances
+        Route::get('/student-fee-plans',         [StudentFeePlanController::class, 'index']);
+        Route::post('/student-fee-plans',        [StudentFeePlanController::class, 'store']);
+        Route::get('/student-fee-plans/{id}',    [StudentFeePlanController::class, 'show']);
+        Route::put('/student-fee-plans/{id}',    [StudentFeePlanController::class, 'update']);
+        Route::delete('/student-fee-plans/{id}', [StudentFeePlanController::class, 'destroy']);
+
+        // Invoices — generate + manage student bills
+        Route::get('/invoices',         [InvoiceController::class, 'index']);
+        Route::post('/invoices',        [InvoiceController::class, 'store']);
+        Route::get('/invoices/{id}',    [InvoiceController::class, 'show']);
+        Route::put('/invoices/{id}',    [InvoiceController::class, 'update']);
+        Route::delete('/invoices/{id}', [InvoiceController::class, 'destroy']);
+
+        // Payments — record + void payments against invoices
+        Route::get('/payments',         [PaymentController::class, 'index']);
+        Route::post('/payments',        [PaymentController::class, 'store']);
+        Route::get('/payments/{id}',    [PaymentController::class, 'show']);
+        Route::delete('/payments/{id}', [PaymentController::class, 'destroy']);
     });
 
     /*
@@ -202,6 +244,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{teacherId}/behavior-logs',         [BehaviorLogController::class, 'index']);
         Route::post('/{teacherId}/behavior-logs',        [BehaviorLogController::class, 'store']);
         Route::get('/{teacherId}/behavior-logs/{logId}', [BehaviorLogController::class, 'show']);
+
+        // Salary — view own salary history
+        Route::get('/{teacherId}/salary',      [TeacherSalaryController::class, 'index']);
+        Route::get('/{teacherId}/salary/{id}', [TeacherSalaryController::class, 'show']);
     });
 
     /*
@@ -284,5 +330,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{parentId}/complaints',      [ComplaintController::class, 'index']);
         Route::post('/{parentId}/complaints',     [ComplaintController::class, 'store']);
         Route::get('/{parentId}/complaints/{id}', [ComplaintController::class, 'show']);
+
+        // Invoices — view invoices for linked children
+        Route::get('/{parentId}/invoices',      [ParentInvoiceController::class, 'index']);
+        Route::get('/{parentId}/invoices/{id}', [ParentInvoiceController::class, 'show']);
+
+        // Payments — view own payment history
+        Route::get('/{parentId}/payments',      [ParentPaymentController::class, 'index']);
+        Route::get('/{parentId}/payments/{id}', [ParentPaymentController::class, 'show']);
     });
 });

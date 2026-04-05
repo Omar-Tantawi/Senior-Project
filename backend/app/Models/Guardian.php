@@ -34,4 +34,9 @@ class Guardian extends Model
             'student_id'   // local key on studentguardian
         );
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'parent_id', 'parent_id');
+    }
 }

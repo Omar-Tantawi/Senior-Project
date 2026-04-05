@@ -38,4 +38,9 @@ class Teacher extends Model
         return $this->belongsToMany(Subject::class, 'teacherassignment', 'teacher_id', 'subject_id')
                     ->distinct();
     }
+
+    public function salaryPayments()
+    {
+        return $this->hasMany(SalaryPayment::class, 'teacher_id', 'id');
+    }
 }

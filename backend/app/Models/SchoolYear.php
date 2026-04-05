@@ -16,4 +16,9 @@ class SchoolYear extends Model
     {
         return $this->hasMany(SchoolClass::class, 'schoolyearid', 'schoolyearid');
     }
+
+    public function feePlans()
+    {
+        return $this->hasMany(FeePlan::class, 'schoolyear_id', 'schoolyearid');
+    }
 }
