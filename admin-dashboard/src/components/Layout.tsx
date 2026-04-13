@@ -1,54 +1,124 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { useState } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Layout as AntLayout, Menu, Button, Avatar, Dropdown, theme } from 'antd';
+import {
+  DashboardOutlined,
+  UserOutlined,
+  TeamOutlined,
+  BookOutlined,
+  CalendarOutlined,
+  ScheduleOutlined,
+  FileTextOutlined,
+  CheckCircleOutlined,
+  DollarOutlined,
+  MessageOutlined,
+  AuditOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  LogoutOutlined,
+  ProfileOutlined,
+} from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 
-const navItems = [
-  { to: '/', label: 'Dashboard' },
-  { to: '/users', label: 'Users' },
-  { to: '/students', label: 'Students' },
-  { to: '/teachers', label: 'Teachers' },
-  { to: '/classes', label: 'Classes' },
-  { to: '/schedules', label: 'Schedules' },
-  { to: '/assessments', label: 'Assessments' },
-  { to: '/attendance', label: 'Attendance' },
-  { to: '/finance', label: 'Finance' },
-  { to: '/complaints', label: 'Complaints' },
-  { to: '/audit-logs', label: 'Audit Logs' },
+const { Sider, Header, Content } = AntLayout;
+
+const menuItems = [
+  { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
+  { key: '/users', icon: <UserOutlined />, label: 'Users' },
+  { key: '/students', icon: <TeamOutlined />, label: 'Students' },
+  { key: '/teachers', icon: <ProfileOutlined />, label: 'Teachers' },
+  { key: '/school-years', icon: <CalendarOutlined />, label: 'School Years' },
+  { key: '/classes', icon: <BookOutlined />, label: 'Classes & Sections' },
+  { key: '/subjects', icon: <FileTextOutlined />, label: 'Subjects' },
+  { key: '/schedules', icon: <ScheduleOutlined />, label: 'Schedules' },
+  { key: '/assessments', icon: <FileTextOutlined />, label: 'Assessments' },
+  { key: '/attendance', icon: <CheckCircleOutlined />, label: 'Attendance' },
+  { key: '/finance', icon: <DollarOutlined />, label: 'Finance' },
+  { key: '/complaints', icon: <MessageOutlined />, label: 'Complaints' },
+  { key: '/audit-logs', icon: <AuditOutlined />, label: 'Audit Logs' },
 ];
 
 export default function Layout() {
+  const [collapsed, setCollapsed] = useState(false);
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { token: themeToken } = theme.useToken();
+
+  const selectedKey = menuItems.find((item) => {
+    if (item.key === '/') return location.pathname === '/';
+    return location.pathname.startsWith(item.key);
+  })?.key || '/';
 
   return (
-    <div className="layout">
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <h2>Admin Panel</h2>
+    <AntLayout style={{ minHeight: '100vh' }}>
+      <Sider
+        trigger={null}
+        collapsible
+        collapsed={collapsed}
+        width={240}
+        style={{
+          overflow: 'auto',
+          height: '100vh',
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          bottom: 0,
+        }}
+      >
+        <div style={{
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+        }}>
+          <h2 style={{ color: '#fff', margin: 0, fontSize: collapsed ? 14 : 18 }}>
+            {collapsed ? 'AP' : 'Admin Panel'}
+          </h2>
         </div>
-        <nav className="sidebar-nav">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              end={item.to === '/'}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="sidebar-footer">
-          <div className="user-info">
-            <span className="user-name">{user?.name}</span>
-            <span className="user-email">{user?.email}</span>
-          </div>
-          <button className="btn btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </aside>
-      <main className="main-content">
-        <Outlet />
-      </main>
-    </div>
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[selectedKey]}
+          items={menuItems}
+          onClick={({ key }) => navigate(key)}
+          style={{ borderRight: 0 }}
+        />
+      </Sider>
+      <AntLayout style={{ marginLeft: collapsed ? 80 : 240, transition: 'margin-left 0.2s' }}>
+        <Header style={{
+          padding: '0 24px',
+          background: themeToken.colorBgContainer,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+        }}>
+          <Button
+            type="text"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setCollapsed(!collapsed)}
+          />
+          <Dropdown menu={{
+            items: [
+              { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', danger: true },
+            ],
+            onClick: ({ key }) => { if (key === 'logout') logout(); },
+          }}>
+            <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Avatar icon={<UserOutlined />} />
+              <span>{user?.name}</span>
+            </div>
+          </Dropdown>
+        </Header>
+        <Content style={{ margin: 24, minHeight: 280 }}>
+          <Outlet />
+        </Content>
+      </AntLayout>
+    </AntLayout>
   );
 }

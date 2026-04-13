@@ -4,6 +4,14 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Users from './pages/Users';
+import Students from './pages/Students';
+import Teachers from './pages/Teachers';
+import SchoolYears from './pages/SchoolYears';
+import Classes from './pages/Classes';
+import Subjects from './pages/Subjects';
+import Schedules from './pages/Schedules';
+import Assessments from './pages/Assessments';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -22,7 +30,14 @@ function AppRoutes() {
         }
       >
         <Route path="/" element={<Dashboard />} />
-        {/* Pages will be added here as we build them */}
+        <Route path="/users" element={<Users />} />
+        <Route path="/students" element={<Students />} />
+        <Route path="/teachers" element={<Teachers />} />
+        <Route path="/school-years" element={<SchoolYears />} />
+        <Route path="/classes" element={<Classes />} />
+        <Route path="/subjects" element={<Subjects />} />
+        <Route path="/schedules" element={<Schedules />} />
+        <Route path="/assessments" element={<Assessments />} />
       </Route>
     </Routes>
   );

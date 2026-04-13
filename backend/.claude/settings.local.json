@@ -36,7 +36,9 @@
       "Bash(npx --yes create-vite@latest admin-dashboard --template react-ts)",
       "Bash(npm install:*)",
       "Bash(npx vite:*)",
-      "Bash(npx --no vite build)"
+      "Bash(npx --no vite build)",
+      "Bash(grep -l \"assessment\\\\|Assessment\" \"C:/Users/ASUS/Desktop/Senior-Project/backend/database/migrations\"/*.php)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

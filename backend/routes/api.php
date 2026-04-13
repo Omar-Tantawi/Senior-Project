@@ -119,7 +119,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
 
         // Create any user account (student / teacher / parent / admin)
-        Route::post('/users', [UserController::class, 'store']);
+        Route::get('/users',      [UserController::class, 'index']);
+        Route::get('/users/{id}', [UserController::class, 'show']);
+        Route::post('/users',     [UserController::class, 'store']);
+        Route::put('/users/{id}', [UserController::class, 'update']);
         Route::put('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
         Route::put('/users/{id}/toggle-active', [UserController::class, 'toggleActive']);
         Route::post('/users/{id}/profile-picture', [UserController::class, 'updateProfilePicture']);
