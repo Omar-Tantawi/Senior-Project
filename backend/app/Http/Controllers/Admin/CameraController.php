@@ -3,16 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Camera\StoreCameraRequest;
+use App\Http\Requests\Camera\UpdateCameraRequest;
 use App\Models\Camera;
 use Illuminate\Http\Request;
 
 class CameraController extends Controller
 {
-    /**
-     * GET /admin/cameras
-     *
-     * List all cameras. Filters: isactive (true/false), search (location)
-     */
     public function index(Request $request)
     {
         $query = Camera::query();
@@ -25,23 +22,12 @@ class CameraController extends Controller
             $query->where('location', 'ilike', "%{$request->search}%");
         }
 
-        $cameras = $query->orderBy('camera_id')
-            ->paginate($request->input('per_page', 20));
-
-        return response()->json($cameras);
+        return response()->json($query->orderBy('camera_id')->paginate($request->input('per_page', 20)));
     }
 
-    /**
-     * POST /admin/cameras
-     */
-    public function store(Request $request)
+    public function store(StoreCameraRequest $request)
     {
-        $data = $request->validate([
-            'location'   => 'required|string|max:255',
-            'isactive'   => 'sometimes|boolean',
-            'code'       => 'sometimes|nullable|string|max:64|unique:camera,code',
-            'stream_url' => 'sometimes|nullable|string|max:512',
-        ]);
+        $data = $request->validated();
 
         $camera = Camera::create([
             'location'   => $data['location'],
@@ -53,40 +39,19 @@ class CameraController extends Controller
         return response()->json($camera, 201);
     }
 
-    /**
-     * GET /admin/cameras/{id}
-     */
     public function show(int $id)
     {
-        $camera = Camera::where('camera_id', $id)
-            ->withCount('events')
-            ->firstOrFail();
-
-        return response()->json($camera);
+        return response()->json(Camera::where('camera_id', $id)->withCount('events')->firstOrFail());
     }
 
-    /**
-     * PUT /admin/cameras/{id}
-     */
-    public function update(int $id, Request $request)
+    public function update(UpdateCameraRequest $request, int $id)
     {
         $camera = Camera::where('camera_id', $id)->firstOrFail();
-
-        $data = $request->validate([
-            'location'   => 'sometimes|string|max:255',
-            'isactive'   => 'sometimes|boolean',
-            'code'       => 'sometimes|nullable|string|max:64|unique:camera,code,' . $camera->camera_id . ',camera_id',
-            'stream_url' => 'sometimes|nullable|string|max:512',
-        ]);
-
-        $camera->update($data);
+        $camera->update($request->validated());
 
         return response()->json($camera);
     }
 
-    /**
-     * DELETE /admin/cameras/{id}
-     */
     public function destroy(int $id)
     {
         Camera::where('camera_id', $id)->firstOrFail()->delete();

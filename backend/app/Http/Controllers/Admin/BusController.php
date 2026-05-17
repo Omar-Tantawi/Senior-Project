@@ -3,14 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Bus\StoreBusRequest;
+use App\Http\Requests\Bus\UpdateBusRequest;
 use App\Models\Bus;
 use Illuminate\Http\Request;
 
 class BusController extends Controller
 {
-    /**
-     * List all buses. Supports ?search=plate and ?per_page=15.
-     */
     public function index(Request $request)
     {
         $query = Bus::query();
@@ -19,41 +18,25 @@ class BusController extends Controller
             $query->where('plate_number', 'like', "%{$search}%");
         }
 
-        $perPage = $request->input('per_page', 15);
-
-        return response()->json($query->orderBy('bus_id')->paginate($perPage));
+        return response()->json($query->orderBy('bus_id')->paginate($request->input('per_page', 15)));
     }
 
-    public function store(Request $request)
+    public function store(StoreBusRequest $request)
     {
-        $request->validate([
-            'plate_number' => 'required|string|max:50|unique:bus,plate_number',
-        ]);
-
-        $bus = Bus::create($request->only('plate_number'));
-
-        return response()->json($bus, 201);
+        return response()->json(Bus::create($request->validated()), 201);
     }
 
     public function show(int $id)
     {
-        $bus = Bus::with([
-            'driverAssignments.driver.user',
-            'studentAssignments.student.user',
-        ])->findOrFail($id);
-
-        return response()->json($bus);
+        return response()->json(
+            Bus::with(['driverAssignments.driver.user', 'studentAssignments.student.user'])->findOrFail($id)
+        );
     }
 
-    public function update(Request $request, int $id)
+    public function update(UpdateBusRequest $request, int $id)
     {
         $bus = Bus::findOrFail($id);
-
-        $request->validate([
-            'plate_number' => "sometimes|string|max:50|unique:bus,plate_number,{$id},bus_id",
-        ]);
-
-        $bus->update($request->only('plate_number'));
+        $bus->update($request->validated());
 
         return response()->json($bus);
     }

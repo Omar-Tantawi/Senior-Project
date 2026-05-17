@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Section\StoreSectionRequest;
+use App\Http\Requests\Section\UpdateSectionRequest;
 use App\Models\Section;
 use Illuminate\Http\Request;
 
@@ -19,14 +21,9 @@ class SectionController extends Controller
         return response()->json($query->get());
     }
 
-    public function store(Request $request)
+    public function store(StoreSectionRequest $request)
     {
-        $request->validate([
-            'class_id' => 'required|exists:class,class_id',
-            'name'     => 'required|string|max:100',
-        ]);
-
-        $section = Section::create($request->only(['class_id', 'name']));
+        $section = Section::create($request->validated());
 
         return response()->json($section->load('schoolClass.schoolYear'), 201);
     }
@@ -36,16 +33,10 @@ class SectionController extends Controller
         return response()->json(Section::with('schoolClass.schoolYear')->findOrFail($id));
     }
 
-    public function update(Request $request, int $id)
+    public function update(UpdateSectionRequest $request, int $id)
     {
         $section = Section::findOrFail($id);
-
-        $request->validate([
-            'class_id' => 'sometimes|exists:class,class_id',
-            'name'     => 'sometimes|string|max:100',
-        ]);
-
-        $section->update($request->only(['class_id', 'name']));
+        $section->update($request->validated());
 
         return response()->json($section->load('schoolClass.schoolYear'));
     }

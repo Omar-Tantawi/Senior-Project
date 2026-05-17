@@ -3,12 +3,17 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Invoice\MarkInvoicePaidRequest;
+use App\Http\Requests\Invoice\StoreInvoiceRequest;
+use App\Http\Requests\Invoice\UpdateInvoiceRequest;
 use App\Models\Invoice;
 use App\Models\StudentFeePlan;
+use App\Services\InvoiceService;
 use Illuminate\Http\Request;
 
 class InvoiceController extends Controller
 {
+    public function __construct(private InvoiceService $invoiceService) {}
     /**
      * GET /admin/invoices/by-student
      *
@@ -148,50 +153,16 @@ class InvoiceController extends Controller
      *
      * Quick action: record full payment (or update status to paid).
      */
-    public function markPaid(int $id, Request $request)
+    public function markPaid(int $id, MarkInvoicePaidRequest $request)
     {
         $invoice = Invoice::where('invoice_id', $id)
             ->with(['account.student.guardians', 'payments'])
             ->firstOrFail();
 
-        $request->validate([
-            'method'      => 'nullable|string|in:cash,card,bank_transfer,cheque',
-            'guardian_id' => 'nullable|integer',
-        ]);
-
-        $paidSum   = (float) $invoice->payments->sum('amount');
-        $remaining = max(0, (float) $invoice->totalamount - $paidSum);
-
-        if ($remaining > 0) {
-            // Find guardian if not provided
-            $parentId = $request->guardian_id
-                ?? optional($invoice->account?->student?->guardians?->first())->parent_id;
-
-            if (! $parentId) {
-                return response()->json([
-                    'message' => 'Cannot record payment: no guardian linked to this student. Please link a parent first.',
-                ], 422);
-            }
-
-            \App\Models\Payment::create([
-                'invoice_id' => $invoice->invoice_id,
-                'parent_id'  => $parentId,
-                'amount'     => $remaining,
-                'method'     => $request->method ?? 'cash',
-                'paidat'     => now(),
-                'status'     => 'completed',
-            ]);
-        }
-
-        $invoice->update(['status' => 'paid']);
-
-        // Sync the linked account
-        if ($invoice->account) {
-            $invoice->account->update([
-                'paid_amount' => $invoice->totalamount,
-                'balance'     => 0,
-                'status'      => 'paid',
-            ]);
+        try {
+            $this->invoiceService->markPaid($invoice, $request->guardian_id, $request->method);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
 
         return response()->json(['message' => 'Invoice marked as paid', 'invoice' => $invoice->fresh()]);
@@ -287,14 +258,9 @@ class InvoiceController extends Controller
      *
      * Create a new invoice against a student's fee account.
      */
-    public function store(Request $request)
+    public function store(StoreInvoiceRequest $request)
     {
-        $data = $request->validate([
-            'account_id'  => 'required|exists:studentfeeplan,account_id',
-            'due_date'    => 'required|date',
-            'totalamount' => 'required|numeric|min:0',
-            'status'      => 'nullable|in:unpaid,partial,paid,cancelled',
-        ]);
+        $data = $request->validated();
 
         $data['status'] = $data['status'] ?? 'unpaid';
 
@@ -371,15 +337,11 @@ class InvoiceController extends Controller
     /**
      * PUT /admin/invoices/{id}
      */
-    public function update(int $id, Request $request)
+    public function update(int $id, UpdateInvoiceRequest $request)
     {
         $invoice = Invoice::where('invoice_id', $id)->firstOrFail();
 
-        $data = $request->validate([
-            'due_date'    => 'sometimes|date',
-            'totalamount' => 'sometimes|numeric|min:0',
-            'status'      => 'sometimes|in:unpaid,partial,paid,cancelled',
-        ]);
+        $data = $request->validated();
 
         $invoice->update($data);
 
@@ -393,13 +355,11 @@ class InvoiceController extends Controller
     {
         $invoice = Invoice::where('invoice_id', $id)->firstOrFail();
 
-        if ($invoice->payments()->exists()) {
-            return response()->json([
-                'message' => 'Cannot delete this invoice: payments have been recorded against it.',
-            ], 422);
+        try {
+            $this->invoiceService->deleteInvoice($invoice);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
-
-        $invoice->delete();
 
         return response()->json(['message' => 'Invoice removed successfully.']);
     }

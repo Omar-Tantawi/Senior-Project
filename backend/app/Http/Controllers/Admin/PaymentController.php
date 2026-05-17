@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Invoice;
+use App\Http\Requests\Payment\StorePaymentRequest;
 use App\Models\Payment;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
+    public function __construct(private PaymentService $paymentService) {}
     /**
      * GET /admin/payments
      *
@@ -64,82 +65,20 @@ class PaymentController extends Controller
      *   - updates invoice.status (unpaid | partial | paid)
      *   - decrements the student's fee account balance
      */
-    public function store(Request $request)
+    public function store(StorePaymentRequest $request)
     {
-        $data = $request->validate([
-            'invoice_id' => 'required|exists:invoice,invoice_id',
-            'parent_id'  => 'required|exists:parent,parent_id',
-            'amount'     => 'required|numeric|min:0.01',
-            'method'     => 'required|in:cash,card,bank_transfer,cheque,stripe',
-            'paidat'     => 'nullable|date',
-        ]);
+        try {
+            $payment = $this->paymentService->recordPayment($request->validated());
+        } catch (\OverflowException $e) {
+            return response()->json(json_decode($e->getMessage(), true), 422);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
-        return DB::transaction(function () use ($data) {
-            // Lock the invoice row so concurrent payments can't race
-            $invoice = Invoice::where('invoice_id', $data['invoice_id'])
-                ->lockForUpdate()
-                ->with('account')
-                ->firstOrFail();
-
-            if ($invoice->status === 'cancelled') {
-                return response()->json([
-                    'message' => 'Cannot record a payment against a cancelled invoice.',
-                ], 422);
-            }
-
-            // Verify the parent is a guardian of the invoiced student
-            $isGuardian = DB::table('studentguardian')
-                ->where('parent_id', $data['parent_id'])
-                ->where('student_id', $invoice->account->student_id)
-                ->exists();
-
-            if (! $isGuardian) {
-                return response()->json([
-                    'message' => 'This parent is not a guardian of the invoiced student.',
-                ], 422);
-            }
-
-            // Enforce: payment cannot exceed outstanding
-            $paidTotal   = (float) $invoice->payments()->sum('amount');
-            $outstanding = (float) $invoice->totalamount - $paidTotal;
-
-            if ((float) $data['amount'] > $outstanding + 0.00001) {
-                return response()->json([
-                    'message'     => 'Payment amount exceeds the invoice outstanding balance.',
-                    'outstanding' => round($outstanding, 2),
-                ], 422);
-            }
-
-            // Create the payment
-            $payment = Payment::create([
-                'invoice_id' => $data['invoice_id'],
-                'parent_id'  => $data['parent_id'],
-                'amount'     => $data['amount'],
-                'method'     => $data['method'],
-                'paidat'     => $data['paidat'] ?? now(),
-            ]);
-
-            // Recalculate invoice status
-            $newPaid = $paidTotal + (float) $data['amount'];
-            if ($newPaid + 0.00001 >= (float) $invoice->totalamount) {
-                $invoice->status = 'paid';
-            } elseif ($newPaid > 0) {
-                $invoice->status = 'partial';
-            } else {
-                $invoice->status = 'unpaid';
-            }
-            $invoice->save();
-
-            // Decrement the account balance
-            $account = $invoice->account;
-            $account->balance = max(0, (float) $account->balance - (float) $data['amount']);
-            $account->save();
-
-            return response()->json(
-                $payment->load(['invoice.account.student.user', 'guardian.user']),
-                201
-            );
-        });
+        return response()->json(
+            $payment->load(['invoice.account.student.user', 'guardian.user']),
+            201
+        );
     }
 
     /**
@@ -161,36 +100,8 @@ class PaymentController extends Controller
      */
     public function destroy(int $id)
     {
-        return DB::transaction(function () use ($id) {
-            $payment = Payment::where('payment_id', $id)->lockForUpdate()->firstOrFail();
+        $this->paymentService->voidPayment($id);
 
-            $invoice = Invoice::where('invoice_id', $payment->invoice_id)
-                ->lockForUpdate()
-                ->with('account')
-                ->firstOrFail();
-
-            $amount = (float) $payment->amount;
-
-            // Delete payment first so sums are correct
-            $payment->delete();
-
-            // Recalculate invoice status from remaining payments
-            $remainingPaid = (float) $invoice->payments()->sum('amount');
-            if ($remainingPaid + 0.00001 >= (float) $invoice->totalamount) {
-                $invoice->status = 'paid';
-            } elseif ($remainingPaid > 0) {
-                $invoice->status = 'partial';
-            } else {
-                $invoice->status = 'unpaid';
-            }
-            $invoice->save();
-
-            // Restore the account balance
-            $account = $invoice->account;
-            $account->balance = (float) $account->balance + $amount;
-            $account->save();
-
-            return response()->json(['message' => 'Payment voided successfully.']);
-        });
+        return response()->json(['message' => 'Payment voided successfully.']);
     }
 }

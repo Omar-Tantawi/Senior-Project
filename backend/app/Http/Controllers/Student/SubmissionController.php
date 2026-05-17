@@ -3,50 +3,28 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Submission\StoreSubmissionRequest;
 use App\Models\HomeworkSubmission;
 use Illuminate\Http\Request;
 
 class SubmissionController extends Controller
 {
-    /**
-     * GET /student/{studentId}/submissions
-     *
-     * List all submissions by this student.
-     * Filters: homework_id, status
-     */
     public function index(int $studentId, Request $request)
     {
         $query = HomeworkSubmission::where('student_id', $studentId)
             ->with(['homework.subject', 'homework.section.schoolClass']);
 
-        if ($request->filled('homework_id')) {
-            $query->where('homework_id', $request->homework_id);
-        }
+        if ($request->filled('homework_id')) $query->where('homework_id', $request->homework_id);
+        if ($request->filled('status'))      $query->where('status', $request->status);
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $submissions = $query->orderByDesc('submittedat')
-            ->paginate($request->input('per_page', 20));
-
-        return response()->json($submissions);
+        return response()->json($query->orderByDesc('submittedat')->paginate($request->input('per_page', 20)));
     }
 
-    /**
-     * POST /student/{studentId}/submissions
-     *
-     * Submit homework with optional file attachment.
-     */
-    public function store(int $studentId, Request $request)
+    public function store(int $studentId, StoreSubmissionRequest $request)
     {
-        $request->validate([
-            'homework_id' => 'required|integer',
-            'file'        => 'nullable|file|max:10240|mimes:pdf,doc,docx,ppt,pptx,xls,xlsx,txt,zip,jpg,jpeg,png',
-        ]);
+        $data = $request->validated();
 
-        // Check if already submitted
-        $exists = HomeworkSubmission::where('homework_id', $request->homework_id)
+        $exists = HomeworkSubmission::where('homework_id', $data['homework_id'])
             ->where('student_id', $studentId)
             ->exists();
 
@@ -57,35 +35,29 @@ class SubmissionController extends Controller
         $filePath = null;
         if ($request->hasFile('file')) {
             $filePath = $request->file('file')->store(
-                "submissions/{$request->homework_id}/{$studentId}",
+                "submissions/{$data['homework_id']}/{$studentId}",
                 'public'
             );
         }
 
         $submission = HomeworkSubmission::create([
-            'homework_id' => $request->homework_id,
+            'homework_id' => $data['homework_id'],
             'student_id'  => $studentId,
             'submittedat' => now(),
             'status'      => 'submitted',
             'file_path'   => $filePath,
         ]);
 
-        return response()->json(
-            $submission->load(['homework.subject']),
-            201
-        );
+        return response()->json($submission->load(['homework.subject']), 201);
     }
 
-    /**
-     * GET /student/{studentId}/submissions/{id}
-     */
     public function show(int $studentId, int $id)
     {
-        $submission = HomeworkSubmission::where('submission_id', $id)
-            ->where('student_id', $studentId)
-            ->with(['homework.subject', 'homework.teacher.user'])
-            ->firstOrFail();
-
-        return response()->json($submission);
+        return response()->json(
+            HomeworkSubmission::where('submission_id', $id)
+                ->where('student_id', $studentId)
+                ->with(['homework.subject', 'homework.teacher.user'])
+                ->firstOrFail()
+        );
     }
 }

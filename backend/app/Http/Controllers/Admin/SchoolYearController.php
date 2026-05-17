@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SchoolYear\StoreSchoolYearRequest;
+use App\Http\Requests\SchoolYear\UpdateSchoolYearRequest;
 use App\Models\SchoolYear;
-use Illuminate\Http\Request;
 
 class SchoolYearController extends Controller
 {
@@ -13,15 +14,9 @@ class SchoolYearController extends Controller
         return response()->json(SchoolYear::latest('schoolyearid')->get());
     }
 
-    public function store(Request $request)
+    public function store(StoreSchoolYearRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:50|unique:schoolyear,name',
-        ]);
-
-        $schoolYear = SchoolYear::create($request->only(['name']));
-
-        return response()->json($schoolYear, 201);
+        return response()->json(SchoolYear::create($request->validated()), 201);
     }
 
     public function show(int $id)
@@ -29,15 +24,10 @@ class SchoolYearController extends Controller
         return response()->json(SchoolYear::with('classes.sections')->findOrFail($id));
     }
 
-    public function update(Request $request, int $id)
+    public function update(UpdateSchoolYearRequest $request, int $id)
     {
         $schoolYear = SchoolYear::findOrFail($id);
-
-        $request->validate([
-            'name' => "sometimes|string|max:50|unique:schoolyear,name,{$id},schoolyearid",
-        ]);
-
-        $schoolYear->update($request->only(['name']));
+        $schoolYear->update($request->validated());
 
         return response()->json($schoolYear);
     }

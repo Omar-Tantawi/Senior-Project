@@ -3,16 +3,12 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\VacationRequest\StoreVacationRequestRequest;
 use App\Models\VacationRequest;
 use Illuminate\Http\Request;
 
 class VacationRequestController extends Controller
 {
-    /**
-     * GET /teacher/{teacherId}/vacation-requests
-     *
-     * List this teacher's vacation requests. Filters: status
-     */
     public function index(int $teacherId, Request $request)
     {
         $query = VacationRequest::where('teacher_id', $teacherId);
@@ -23,26 +19,13 @@ class VacationRequestController extends Controller
 
         $requests = $query->orderByDesc('start_date')->get();
 
-        return response()->json([
-            'teacher_id' => $teacherId,
-            'count'      => $requests->count(),
-            'requests'   => $requests,
-        ]);
+        return response()->json(['teacher_id' => $teacherId, 'count' => $requests->count(), 'requests' => $requests]);
     }
 
-    /**
-     * POST /teacher/{teacherId}/vacation-requests
-     *
-     * Submit a new vacation request.
-     */
-    public function store(int $teacherId, Request $request)
+    public function store(int $teacherId, StoreVacationRequestRequest $request)
     {
-        $data = $request->validate([
-            'start_date' => 'required|date|after_or_equal:today',
-            'end_date'   => 'required|date|after_or_equal:start_date',
-        ]);
+        $data = $request->validated();
 
-        // Prevent overlapping requests
         $overlap = VacationRequest::where('teacher_id', $teacherId)
             ->where('status', '!=', 'rejected')
             ->where(function ($q) use ($data) {
@@ -71,31 +54,20 @@ class VacationRequestController extends Controller
         return response()->json($vacation, 201);
     }
 
-    /**
-     * GET /teacher/{teacherId}/vacation-requests/{id}
-     */
     public function show(int $teacherId, int $id)
     {
-        $vacation = VacationRequest::where('teacher_id', $teacherId)
-            ->where('vacation_id', $id)
-            ->firstOrFail();
-
-        return response()->json($vacation);
+        return response()->json(
+            VacationRequest::where('teacher_id', $teacherId)->where('vacation_id', $id)->firstOrFail()
+        );
     }
 
-    /**
-     * DELETE /teacher/{teacherId}/vacation-requests/{id}
-     *
-     * Cancel a pending vacation request.
-     */
     public function destroy(int $teacherId, int $id)
     {
-        $vacation = VacationRequest::where('teacher_id', $teacherId)
+        VacationRequest::where('teacher_id', $teacherId)
             ->where('vacation_id', $id)
             ->where('status', 'pending')
-            ->firstOrFail();
-
-        $vacation->delete();
+            ->firstOrFail()
+            ->delete();
 
         return response()->json(['message' => 'Vacation request cancelled successfully.']);
     }

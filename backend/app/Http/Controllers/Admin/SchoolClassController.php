@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SchoolClass\StoreSchoolClassRequest;
+use App\Http\Requests\SchoolClass\UpdateSchoolClassRequest;
 use App\Models\SchoolClass;
 use Illuminate\Http\Request;
 
@@ -19,14 +21,9 @@ class SchoolClassController extends Controller
         return response()->json($query->get());
     }
 
-    public function store(Request $request)
+    public function store(StoreSchoolClassRequest $request)
     {
-        $request->validate([
-            'name'        => 'required|string|max:100',
-            'schoolyearid' => 'required|exists:schoolyear,schoolyearid',
-        ]);
-
-        $class = SchoolClass::create($request->only(['name', 'schoolyearid']));
+        $class = SchoolClass::create($request->validated());
 
         return response()->json($class->load('schoolYear'), 201);
     }
@@ -36,16 +33,10 @@ class SchoolClassController extends Controller
         return response()->json(SchoolClass::with(['schoolYear', 'sections'])->findOrFail($id));
     }
 
-    public function update(Request $request, int $id)
+    public function update(UpdateSchoolClassRequest $request, int $id)
     {
         $class = SchoolClass::findOrFail($id);
-
-        $request->validate([
-            'name'         => 'sometimes|string|max:100',
-            'schoolyearid' => 'sometimes|exists:schoolyear,schoolyearid',
-        ]);
-
-        $class->update($request->only(['name', 'schoolyearid']));
+        $class->update($request->validated());
 
         return response()->json($class->load('schoolYear'));
     }

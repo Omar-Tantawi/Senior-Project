@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SalaryPayment\StoreSalaryPaymentRequest;
+use App\Http\Requests\SalaryPayment\UpdateSalaryPaymentRequest;
 use App\Models\SalaryPayment;
 use Illuminate\Http\Request;
 
@@ -60,14 +62,9 @@ class SalaryPaymentController extends Controller
      *
      * Record a salary payment for a teacher.
      */
-    public function store(Request $request)
+    public function store(StoreSalaryPaymentRequest $request)
     {
-        $data = $request->validate([
-            'teacher_id'   => 'required|exists:teachers,id',
-            'amount'       => 'required|numeric|min:0',
-            'period_month' => 'required|string',
-            'paidat'       => 'nullable|date',
-        ]);
+        $data = $request->validated();
 
         $period = $this->toPeriodMonth($data['period_month']);
 
@@ -107,15 +104,11 @@ class SalaryPaymentController extends Controller
     /**
      * PUT /admin/salary-payments/{id}
      */
-    public function update(int $id, Request $request)
+    public function update(int $id, UpdateSalaryPaymentRequest $request)
     {
         $payment = SalaryPayment::where('salarypayment_id', $id)->firstOrFail();
 
-        $data = $request->validate([
-            'amount'       => 'sometimes|numeric|min:0',
-            'period_month' => 'sometimes|string',
-            'paidat'       => 'sometimes|date',
-        ]);
+        $data = $request->validated();
 
         if (array_key_exists('period_month', $data)) {
             $data['periodmonth'] = $this->toPeriodMonth($data['period_month']);
