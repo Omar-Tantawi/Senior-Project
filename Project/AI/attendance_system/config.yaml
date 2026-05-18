@@ -1,0 +1,44 @@
+# Attendance System Configuration
+
+camera:
+  source: 0                    # 0 = default USB webcam, or RTSP URL string
+  width: 1280
+  height: 720
+  fps: 30
+
+detection:
+  det_model: "models/det_10g.onnx"      # RetinaFace detection model
+  rec_model: "models/w600k_r50.onnx"    # ArcFace recognition model
+  det_size: [640, 640]                   # Detection input size
+  det_thresh: 0.5                        # Minimum face detection confidence
+  max_faces: 60                          # Max faces to detect per frame
+
+recognition:
+  similarity_threshold: 0.4    # Cosine similarity threshold (lower = stricter)
+  unknown_threshold: 0.3       # Below this, face is marked as unknown
+
+attendance:
+  capture_interval_sec: 5      # Seconds between face captures
+  session_duration_sec: 120    # How long to scan (seconds) - default 2 minutes
+  min_confidence: 0.4          # Minimum recognition confidence to count as present
+
+enrollment:
+  photos_per_student: 5        # Number of photos to take per student
+  capture_delay_sec: 2         # Delay between enrollment photos
+
+storage:
+  embeddings_dir: "data/embeddings"
+  unknown_faces_dir: "data/unknown_faces"
+  csv_output_dir: "data/attendance_csv"
+
+api:
+  base_url: "http://localhost:8000/api"   # Backend REST API base URL
+  timeout_sec: 10
+  endpoints:
+    students: "/students"
+    schedule: "/schedule"
+    attendance: "/attendance"
+    enroll: "/enroll"
+
+server:
+  port: 5000                   # Port for server mode (backend triggers scans)

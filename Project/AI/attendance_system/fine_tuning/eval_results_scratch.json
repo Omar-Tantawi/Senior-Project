@@ -1,0 +1,310 @@
+{
+  "original": {
+    "verification": {
+      "best_accuracy": 0.52,
+      "best_threshold": 1.0,
+      "mean_positive_similarity": 0.8834310638904571,
+      "mean_negative_similarity": 0.8804579257965088,
+      "std_positive_similarity": 0.08948597547752249,
+      "std_negative_similarity": 0.11351875745640919,
+      "num_positive_pairs": 50,
+      "num_negative_pairs": 50,
+      "thresholds": [
+        {
+          "threshold": 0.0,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.05,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.1,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.15000000000000002,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.2,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.25,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.30000000000000004,
+          "accuracy": 0.51,
+          "tpr": 1.0,
+          "fpr": 0.98
+        },
+        {
+          "threshold": 0.35000000000000003,
+          "accuracy": 0.51,
+          "tpr": 1.0,
+          "fpr": 0.98
+        },
+        {
+          "threshold": 0.4,
+          "accuracy": 0.51,
+          "tpr": 1.0,
+          "fpr": 0.98
+        },
+        {
+          "threshold": 0.45,
+          "accuracy": 0.51,
+          "tpr": 1.0,
+          "fpr": 0.98
+        },
+        {
+          "threshold": 0.5,
+          "accuracy": 0.51,
+          "tpr": 1.0,
+          "fpr": 0.98
+        },
+        {
+          "threshold": 0.55,
+          "accuracy": 0.51,
+          "tpr": 1.0,
+          "fpr": 0.98
+        },
+        {
+          "threshold": 0.6000000000000001,
+          "accuracy": 0.51,
+          "tpr": 1.0,
+          "fpr": 0.98
+        },
+        {
+          "threshold": 0.65,
+          "accuracy": 0.51,
+          "tpr": 1.0,
+          "fpr": 0.98
+        },
+        {
+          "threshold": 0.7000000000000001,
+          "accuracy": 0.5,
+          "tpr": 0.98,
+          "fpr": 0.98
+        },
+        {
+          "threshold": 0.75,
+          "accuracy": 0.5,
+          "tpr": 0.9,
+          "fpr": 0.9
+        },
+        {
+          "threshold": 0.8,
+          "accuracy": 0.49,
+          "tpr": 0.8,
+          "fpr": 0.82
+        },
+        {
+          "threshold": 0.8500000000000001,
+          "accuracy": 0.47,
+          "tpr": 0.62,
+          "fpr": 0.68
+        },
+        {
+          "threshold": 0.9,
+          "accuracy": 0.51,
+          "tpr": 0.58,
+          "fpr": 0.56
+        },
+        {
+          "threshold": 0.9500000000000001,
+          "accuracy": 0.46,
+          "tpr": 0.24,
+          "fpr": 0.32
+        },
+        {
+          "threshold": 1.0,
+          "accuracy": 0.52,
+          "tpr": 0.04,
+          "fpr": 0.0
+        }
+      ]
+    },
+    "identification": {
+      "rank1_accuracy": 0.0945945945945946,
+      "rank5_accuracy": 0.33783783783783783,
+      "num_probes": 148,
+      "num_gallery_identities": 18
+    },
+    "embedding_quality": {
+      "mean_intra_class_similarity": 0.8682681003954843,
+      "std_intra_class_similarity": 0.11855348051355061,
+      "mean_inter_class_similarity": 0.9758138664407667,
+      "std_inter_class_similarity": 0.012518126384745868,
+      "separability": -0.10754576604528243,
+      "num_identities_evaluated": 18
+    }
+  },
+  "finetuned": {
+    "verification": {
+      "best_accuracy": 0.55,
+      "best_threshold": 0.65,
+      "mean_positive_similarity": 0.8595682883262634,
+      "mean_negative_similarity": 0.8575744998455047,
+      "std_positive_similarity": 0.08687286613381376,
+      "std_negative_similarity": 0.11803042272397016,
+      "num_positive_pairs": 50,
+      "num_negative_pairs": 50,
+      "thresholds": [
+        {
+          "threshold": 0.0,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.05,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.1,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.15000000000000002,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.2,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.25,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.30000000000000004,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.35000000000000003,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.4,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.45,
+          "accuracy": 0.5,
+          "tpr": 1.0,
+          "fpr": 1.0
+        },
+        {
+          "threshold": 0.5,
+          "accuracy": 0.51,
+          "tpr": 1.0,
+          "fpr": 0.98
+        },
+        {
+          "threshold": 0.55,
+          "accuracy": 0.51,
+          "tpr": 1.0,
+          "fpr": 0.98
+        },
+        {
+          "threshold": 0.6000000000000001,
+          "accuracy": 0.52,
+          "tpr": 1.0,
+          "fpr": 0.96
+        },
+        {
+          "threshold": 0.65,
+          "accuracy": 0.55,
+          "tpr": 1.0,
+          "fpr": 0.9
+        },
+        {
+          "threshold": 0.7000000000000001,
+          "accuracy": 0.55,
+          "tpr": 0.96,
+          "fpr": 0.86
+        },
+        {
+          "threshold": 0.75,
+          "accuracy": 0.52,
+          "tpr": 0.86,
+          "fpr": 0.82
+        },
+        {
+          "threshold": 0.8,
+          "accuracy": 0.48,
+          "tpr": 0.72,
+          "fpr": 0.76
+        },
+        {
+          "threshold": 0.8500000000000001,
+          "accuracy": 0.41,
+          "tpr": 0.5,
+          "fpr": 0.68
+        },
+        {
+          "threshold": 0.9,
+          "accuracy": 0.42,
+          "tpr": 0.36,
+          "fpr": 0.52
+        },
+        {
+          "threshold": 0.9500000000000001,
+          "accuracy": 0.52,
+          "tpr": 0.2,
+          "fpr": 0.16
+        },
+        {
+          "threshold": 1.0,
+          "accuracy": 0.53,
+          "tpr": 0.06,
+          "fpr": 0.0
+        }
+      ]
+    },
+    "identification": {
+      "rank1_accuracy": 0.08108108108108109,
+      "rank5_accuracy": 0.31756756756756754,
+      "num_probes": 148,
+      "num_gallery_identities": 18
+    },
+    "embedding_quality": {
+      "mean_intra_class_similarity": 0.8664563486428536,
+      "std_intra_class_similarity": 0.098068226142288,
+      "mean_inter_class_similarity": 0.9753485637552598,
+      "std_inter_class_similarity": 0.013019677157468214,
+      "separability": -0.10889221511240621,
+      "num_identities_evaluated": 18
+    }
+  }
+}
