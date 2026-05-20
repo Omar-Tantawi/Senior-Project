@@ -21,29 +21,70 @@ class MessagesLoading extends MessagesState {
 
 class MessagesLoaded extends MessagesState {
   final List<MessageModel> inbox;
-  final MessageModel? opened; // currently-viewed message (detail)
+
+  /// All teachers across every child — used when no child is selected.
+  final List<TeacherSummaryModel> allTeachers;
+  final bool allTeachersLoading;
+
+  /// Teachers loaded for a specific child (keyed by childId).
+  final Map<int, List<TeacherSummaryModel>> teachersByChild;
+
+  /// Which child's teacher list is currently being fetched.
+  final int? teachersLoadingForChild;
+
+  final MessageModel? opened;
   final bool sending;
 
   const MessagesLoaded({
     required this.inbox,
+    this.allTeachers = const [],
+    this.allTeachersLoading = false,
+    this.teachersByChild = const {},
+    this.teachersLoadingForChild,
     this.opened,
     this.sending = false,
   });
 
+  /// Teachers for a specific child, or empty if not yet loaded.
+  List<TeacherSummaryModel> teachersFor(int childId) =>
+      teachersByChild[childId] ?? [];
+
+  bool isLoadingTeachersFor(int childId) =>
+      teachersLoadingForChild == childId;
+
   MessagesLoaded copyWith({
     List<MessageModel>? inbox,
+    List<TeacherSummaryModel>? allTeachers,
+    bool? allTeachersLoading,
+    Map<int, List<TeacherSummaryModel>>? teachersByChild,
+    int? teachersLoadingForChild,
+    bool clearTeachersLoading = false,
     MessageModel? opened,
     bool clearOpened = false,
     bool? sending,
   }) =>
       MessagesLoaded(
         inbox: inbox ?? this.inbox,
+        allTeachers: allTeachers ?? this.allTeachers,
+        allTeachersLoading: allTeachersLoading ?? this.allTeachersLoading,
+        teachersByChild: teachersByChild ?? this.teachersByChild,
+        teachersLoadingForChild: clearTeachersLoading
+            ? null
+            : (teachersLoadingForChild ?? this.teachersLoadingForChild),
         opened: clearOpened ? null : (opened ?? this.opened),
         sending: sending ?? this.sending,
       );
 
   @override
-  List<Object?> get props => [inbox, opened, sending];
+  List<Object?> get props => [
+        inbox,
+        allTeachers,
+        allTeachersLoading,
+        teachersByChild,
+        teachersLoadingForChild,
+        opened,
+        sending,
+      ];
 }
 
 class MessagesError extends MessagesState {
@@ -70,6 +111,57 @@ class MessagesCubit extends Cubit<MessagesState> {
     }
   }
 
+  /// Loads all teachers (no child filter). Used when no child is selected
+  /// in the compose form. Skipped if already loaded or loading.
+  Future<void> loadTeachers() async {
+    final s = state;
+    if (s is! MessagesLoaded) return;
+    if (s.allTeachers.isNotEmpty || s.allTeachersLoading) return;
+
+    emit(s.copyWith(allTeachersLoading: true));
+    try {
+      final teachers = await repo.getTeachers();
+      final current = state;
+      if (current is MessagesLoaded) {
+        emit(current.copyWith(allTeachers: teachers, allTeachersLoading: false));
+      }
+    } catch (_) {
+      final current = state;
+      if (current is MessagesLoaded) {
+        emit(current.copyWith(allTeachersLoading: false));
+      }
+    }
+  }
+
+  /// Loads teachers for a specific child (with their subjects).
+  /// Results are cached by childId so repeated opens are instant.
+  Future<void> loadTeachersForChild(int childId) async {
+    final s = state;
+    if (s is! MessagesLoaded) return;
+    if (s.teachersByChild.containsKey(childId)) return;
+    if (s.teachersLoadingForChild == childId) return;
+
+    emit(s.copyWith(teachersLoadingForChild: childId));
+    try {
+      final teachers = await repo.getTeachersForChild(childId);
+      final current = state;
+      if (current is MessagesLoaded) {
+        final updated =
+            Map<int, List<TeacherSummaryModel>>.from(current.teachersByChild)
+              ..[childId] = teachers;
+        emit(current.copyWith(
+          teachersByChild: updated,
+          clearTeachersLoading: true,
+        ));
+      }
+    } catch (_) {
+      final current = state;
+      if (current is MessagesLoaded) {
+        emit(current.copyWith(clearTeachersLoading: true));
+      }
+    }
+  }
+
   /// Open a specific message (fetches fresh so read_at is updated server-side).
   Future<void> open(int messageId) async {
     final s = state;
@@ -77,10 +169,7 @@ class MessagesCubit extends Cubit<MessagesState> {
     emit(base.copyWith(opened: null, clearOpened: true));
     try {
       final m = await repo.getMessage(messageId);
-      // Reflect the read state in the inbox list too.
-      final inbox = base.inbox
-          .map((x) => x.id == m.id ? m : x)
-          .toList();
+      final inbox = base.inbox.map((x) => x.id == m.id ? m : x).toList();
       emit(base.copyWith(inbox: inbox, opened: m));
     } catch (e) {
       emit(MessagesError(e.toString()));

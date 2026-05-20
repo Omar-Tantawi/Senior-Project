@@ -4,7 +4,6 @@ import 'package:first_try/core/widgets/shared/error_view.dart';
 import 'package:first_try/core/widgets/shared/loading_view.dart';
 import 'package:first_try/core/widgets/shared/skeletons.dart';
 import 'package:first_try/core/widgets/ui/ui.dart';
-import 'package:first_try/features/auth/current_user.dart';
 import 'package:first_try/features/teacher/data/models/teacher_extra_models.dart';
 import 'package:first_try/features/teacher/presentation/cubit/teacher_messages_cubit.dart';
 import 'package:flutter/material.dart';
@@ -38,13 +37,14 @@ class _TeacherMessagesScreenState extends State<TeacherMessagesScreen>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Messages',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+        title: const Text('Messages', style: TextStyle(fontWeight: FontWeight.w700)),
         bottom: TabBar(
           controller: _tab,
           tabs: [
+            // Inbox tab — shows unread badge when there are unread messages
             BlocBuilder<TeacherMessagesCubit, TeacherMessagesState>(
               builder: (context, state) {
                 final unread =
@@ -66,9 +66,10 @@ class _TeacherMessagesScreenState extends State<TeacherMessagesScreen>
                           child: Text(
                             '$unread',
                             style: TextStyle(
-                                color: cs.onError,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700),
+                              color: cs.onError,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ],
@@ -86,11 +87,21 @@ class _TeacherMessagesScreenState extends State<TeacherMessagesScreen>
         icon: const Icon(Icons.edit_rounded),
         label: const Text('Compose'),
       ),
-      body: BlocBuilder<TeacherMessagesCubit, TeacherMessagesState>(
+      body: BlocConsumer<TeacherMessagesCubit, TeacherMessagesState>(
+        listener: (context, state) {
+          if (state is TeacherMessagesError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+            );
+          }
+        },
         builder: (context, state) {
           if (state is TeacherMessagesLoading ||
               state is TeacherMessagesInitial) {
-            return const CardListSkeleton(showFilter: true);
+            return const CardListSkeleton(cardHeight: 80);
           }
           if (state is TeacherMessagesError) {
             return ErrorView(
@@ -104,7 +115,7 @@ class _TeacherMessagesScreenState extends State<TeacherMessagesScreen>
             controller: _tab,
             children: [
               _MessageList(messages: state.inbox, isInbox: true),
-              _MessageList(messages: state.sent, isInbox: false),
+              _MessageList(messages: state.sent,  isInbox: false),
             ],
           );
         },
@@ -114,6 +125,7 @@ class _TeacherMessagesScreenState extends State<TeacherMessagesScreen>
 
   void _showCompose(BuildContext context) {
     final cubit = context.read<TeacherMessagesCubit>();
+    cubit.loadParents(); // pre-fetch parents so the dropdown is ready
     showAppBottomSheet<void>(
       context: context,
       title: 'New Message',
@@ -147,112 +159,176 @@ class _MessageList extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: () => context.read<TeacherMessagesCubit>().load(),
       child: ListView.separated(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         itemCount: messages.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, i) =>
-            _MessageTile(message: messages[i], isInbox: isInbox),
+            _MessageCard(message: messages[i], isInbox: isInbox),
       ),
     );
   }
 }
 
-// ── Message tile ──────────────────────────────────────────────────────────────
+// ── Message card ──────────────────────────────────────────────────────────────
 
-class _MessageTile extends StatelessWidget {
+class _MessageCard extends StatelessWidget {
   final TeacherMessageModel message;
   final bool isInbox;
-  const _MessageTile({required this.message, required this.isInbox});
+  const _MessageCard({required this.message, required this.isInbox});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final showUnread = isInbox && !message.isRead;
-    final other = isInbox
-        ? (message.senderName ?? 'Unknown')
-        : (message.receiverName ?? 'Unknown');
+    final cs       = Theme.of(context).colorScheme;
+    final tt       = Theme.of(context).textTheme;
+    final isUnread = isInbox && !message.isRead;
+    final other    = isInbox
+        ? (message.senderName   ?? 'Parent')
+        : (message.receiverName ?? 'Parent');
+    final initial  = other.isNotEmpty ? other[0].toUpperCase() : '?';
 
-    final content = Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CircleAvatar(
-          radius: 20,
-          backgroundColor: showUnread ? cs.primary : cs.primaryContainer,
-          child: Text(
-            other.isNotEmpty ? other[0].toUpperCase() : '?',
-            style: TextStyle(
-                color: showUnread ? cs.onPrimary : cs.onPrimaryContainer,
-                fontWeight: FontWeight.w700),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return AppCard.surface(
+      onTap: () => _open(context),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header: avatar · name · status pill · time ──────────────
+          Row(
             children: [
-              Row(children: [
-                Expanded(
-                  child: Text(other,
-                      style: TextStyle(
-                        fontWeight:
-                            showUnread ? FontWeight.w700 : FontWeight.w600,
-                        fontSize: 14,
-                      )),
+              // Avatar — Container + BoxDecoration + Radii pattern
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: isUnread
+                          ? cs.primaryContainer
+                          : cs.surfaceContainerHighest,
+                      borderRadius: Radii.smRadius,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      initial,
+                      style: tt.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: isUnread
+                            ? cs.onPrimaryContainer
+                            : cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  if (isUnread)
+                    Positioned(
+                      right: -3,
+                      top: -3,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: cs.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: cs.surface, width: 1.5),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 10),
+
+              // Name
+              Expanded(
+                child: Text(
+                  other,
+                  style: tt.bodyMedium?.copyWith(
+                    fontWeight: isUnread ? FontWeight.w700 : FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                if (!isInbox && message.isRead)
-                  Icon(Icons.done_all_rounded,
-                      size: 16, color: cs.primary),
-                const SizedBox(width: 6),
-                Text(_fmt(message.createdAt),
-                    style: TextStyle(
-                        fontSize: 11, color: cs.onSurfaceVariant)),
-              ]),
-              const SizedBox(height: 2),
-              if (message.subject != null)
-                Text(message.subject!,
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-              Text(message.body,
-                  style:
-                      TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-              if (message.studentName != null) ...[
-                const SizedBox(height: 4),
-                Text('Re: ${message.studentName}',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: cs.primary,
-                        fontWeight: FontWeight.w600)),
-              ],
+              ),
+              const SizedBox(width: 8),
+
+              // Status pill
+              if (!isInbox && message.isRead)
+                StatusPill(
+                  label: 'Read',
+                  tone: StatusTone.success,
+                  icon: Icons.done_all_rounded,
+                  dense: true,
+                )
+              else if (isUnread)
+                StatusPill(
+                  label: 'New',
+                  tone: StatusTone.primary,
+                  icon: Icons.mark_email_unread_outlined,
+                  dense: true,
+                ),
+
+              const SizedBox(width: 8),
+              Text(
+                _fmt(message.createdAt),
+                style: tt.labelSmall?.copyWith(
+                  color: isUnread ? cs.primary : cs.onSurfaceVariant,
+                  fontWeight: isUnread ? FontWeight.w700 : FontWeight.normal,
+                ),
+              ),
             ],
           ),
-        ),
-        if (showUnread)
-          Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.only(top: 4, left: 6),
-            decoration: BoxDecoration(
-                color: cs.primary, shape: BoxShape.circle),
-          ),
-      ],
-    );
+          const SizedBox(height: 8),
 
-    return showUnread
-        ? AppCard.filled(
-            color: cs.primaryContainer.withValues(alpha: 0.4),
-            padding: const EdgeInsets.all(14),
-            onTap: () => _open(context),
-            child: content,
-          )
-        : AppCard.surface(
-            padding: const EdgeInsets.all(14),
-            onTap: () => _open(context),
-            child: content,
-          );
+          // ── Subject ─────────────────────────────────────────────────
+          if (message.subject != null) ...[
+            Text(
+              message.subject!,
+              style: tt.bodyMedium?.copyWith(
+                fontWeight: isUnread ? FontWeight.w700 : FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 3),
+          ],
+
+          // ── Body preview ─────────────────────────────────────────────
+          Text(
+            message.body,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 8),
+
+          // ── Footer: student · time ────────────────────────────────────
+          Row(
+            children: [
+              if (message.studentName != null) ...[
+                Icon(Icons.person_outline_rounded,
+                    size: 13, color: cs.primary),
+                const SizedBox(width: 4),
+                Text(
+                  message.studentName!,
+                  style: tt.labelSmall?.copyWith(
+                    color: cs.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Icon(Icons.access_time_rounded,
+                  size: 13, color: cs.onSurfaceVariant),
+              const SizedBox(width: 4),
+              Text(
+                _fmtFull(message.createdAt),
+                style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+              ),
+              const Spacer(),
+              Icon(Icons.chevron_right_rounded,
+                  size: 16, color: cs.onSurfaceVariant),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   void _open(BuildContext context) {
@@ -263,24 +339,39 @@ class _MessageTile extends StatelessWidget {
       title: message.subject ?? 'Message',
       builder: (_) => BlocProvider.value(
         value: cubit,
-        child: const _MessageDetailSheet(),
+        child: const _DetailSheet(),
       ),
     ).then((_) => cubit.closeOpened());
   }
 
   String _fmt(String iso) {
     try {
-      return DateFormat('d MMM').format(DateTime.parse(iso));
+      final dt   = DateTime.parse(iso).toLocal();
+      final now  = DateTime.now();
+      final diff = now.difference(dt);
+      if (diff.inMinutes < 1) return 'Just now';
+      if (diff.inHours  < 1) return '${diff.inMinutes}m ago';
+      if (diff.inDays   < 1) return '${diff.inHours}h ago';
+      if (diff.inDays   < 7) return '${diff.inDays}d ago';
+      return DateFormat('d MMM').format(dt);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _fmtFull(String iso) {
+    try {
+      return DateFormat('d MMM y').format(DateTime.parse(iso).toLocal());
     } catch (_) {
       return iso;
     }
   }
 }
 
-// ── Message detail sheet ──────────────────────────────────────────────────────
+// ── Detail bottom-sheet ───────────────────────────────────────────────────────
 
-class _MessageDetailSheet extends StatelessWidget {
-  const _MessageDetailSheet();
+class _DetailSheet extends StatelessWidget {
+  const _DetailSheet();
 
   @override
   Widget build(BuildContext context) {
@@ -292,55 +383,58 @@ class _MessageDetailSheet extends StatelessWidget {
             child: LoadingView(),
           );
         }
-        final m = state.opened!;
+        final m  = state.opened!;
         final cs = Theme.of(context).colorScheme;
+        final tt = Theme.of(context).textTheme;
+
         return SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [
-                Text('From: ',
-                    style: TextStyle(
-                        fontSize: 12, color: cs.onSurfaceVariant)),
-                Text(m.senderName ?? '—',
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600)),
-              ]),
-              Row(children: [
-                Text('To: ',
-                    style: TextStyle(
-                        fontSize: 12, color: cs.onSurfaceVariant)),
-                Text(m.receiverName ?? '—',
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600)),
-              ]),
+              // ── Metadata ────────────────────────────────────────────
+              _MetaRow(
+                icon: Icons.person_outline_rounded,
+                label: 'From',
+                value: m.senderName ?? '—',
+              ),
+              const SizedBox(height: 4),
+              _MetaRow(
+                icon: Icons.person_rounded,
+                label: 'To',
+                value: m.receiverName ?? '—',
+              ),
               if (m.studentName != null) ...[
                 const SizedBox(height: 4),
-                Text('Re: ${m.studentName}',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: cs.primary,
-                        fontWeight: FontWeight.w600)),
+                _MetaRow(
+                  icon: Icons.child_care_rounded,
+                  label: 'Re',
+                  value: m.studentName!,
+                ),
               ],
               const SizedBox(height: 4),
-              Text(_fmtFull(m.createdAt),
-                  style:
-                      TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
-              const Divider(height: 24),
-              Text(m.body,
-                  style: const TextStyle(fontSize: 14, height: 1.5)),
+              _MetaRow(
+                icon: Icons.access_time_rounded,
+                label: 'Sent',
+                value: _fmtFull(m.createdAt),
+              ),
               if (m.readAt != null) ...[
-                const SizedBox(height: 16),
-                Row(children: [
-                  Icon(Icons.done_all_rounded,
-                      size: 14, color: cs.primary),
-                  const SizedBox(width: 4),
-                  Text('Read ${_fmtFull(m.readAt!)}',
-                      style: TextStyle(
-                          fontSize: 11, color: cs.onSurfaceVariant)),
-                ]),
+                const SizedBox(height: 4),
+                _MetaRow(
+                  icon: Icons.done_all_rounded,
+                  label: 'Read',
+                  value: _fmtFull(m.readAt!),
+                  valueColor: cs.primary,
+                ),
               ],
+              const Divider(height: 24),
+
+              // ── Body ────────────────────────────────────────────────
+              Text(
+                m.body,
+                style: tt.bodyMedium?.copyWith(height: 1.6, color: cs.onSurface),
+              ),
+              const SizedBox(height: 16),
             ],
           ),
         );
@@ -350,14 +444,55 @@ class _MessageDetailSheet extends StatelessWidget {
 
   String _fmtFull(String iso) {
     try {
-      return DateFormat('d MMM y, HH:mm').format(DateTime.parse(iso));
+      return DateFormat('d MMM yyyy, HH:mm').format(DateTime.parse(iso).toLocal());
     } catch (_) {
       return iso;
     }
   }
 }
 
+class _MetaRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+  const _MetaRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: cs.onSurfaceVariant),
+        const SizedBox(width: 6),
+        Text(
+          '$label: ',
+          style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: tt.bodySmall?.copyWith(
+              color: valueColor ?? cs.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ── Compose sheet ─────────────────────────────────────────────────────────────
+//
+// Cascading: Parent → Student (optional, filtered by parent) → Subject → Body
 
 class _ComposeSheet extends StatefulWidget {
   const _ComposeSheet();
@@ -367,79 +502,144 @@ class _ComposeSheet extends StatefulWidget {
 }
 
 class _ComposeSheetState extends State<_ComposeSheet> {
-  final _receiverCtrl = TextEditingController();
-  final _studentCtrl = TextEditingController();
-  final _subjectCtrl = TextEditingController();
-  final _bodyCtrl = TextEditingController();
+  final _subjectCtl = TextEditingController();
+  final _bodyCtl    = TextEditingController();
+
+  int?    _parentUserId; // required — User.id of the selected parent
+  int?    _studentId;    // optional
+  String? _subject;      // optional
 
   @override
   void dispose() {
-    _receiverCtrl.dispose();
-    _studentCtrl.dispose();
-    _subjectCtrl.dispose();
-    _bodyCtrl.dispose();
+    _subjectCtl.dispose();
+    _bodyCtl.dispose();
     super.dispose();
+  }
+
+  void _onParentChanged(int? userId) {
+    setState(() {
+      _parentUserId = userId;
+      _studentId    = null; // reset child when parent changes
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // ignore: unused_local_variable
-    final _ = context.currentUserId;
     return BlocBuilder<TeacherMessagesCubit, TeacherMessagesState>(
       builder: (context, state) {
-        final sending = state is TeacherMessagesLoaded && state.sending;
+        final loaded  = state is TeacherMessagesLoaded ? state : null;
+        final sending = loaded?.sending ?? false;
+        final parentsLoading = loaded?.parentsLoading ?? false;
+        final parents = loaded?.parents ?? [];
+
+        // Students for the selected parent
+        final selectedParent = parents
+            .where((p) => p.userId == _parentUserId)
+            .firstOrNull;
+        final students = selectedParent?.students ?? [];
+
         return SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
-                controller: _receiverCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Parent user ID *',
-                  helperText: 'Numeric user_id of the recipient parent',
-                  prefixIcon: Icon(Icons.person_outline_rounded),
+
+              // ── Parent ───────────────────────────────────────────────
+              DropdownButtonFormField<int?>(
+                initialValue: _parentUserId,
+                decoration: InputDecoration(
+                  labelText: 'Parent *',
+                  prefixIcon: parentsLoading
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : const Icon(Icons.person_rounded),
                 ),
+                hint: parentsLoading
+                    ? const Text('Loading parents…')
+                    : const Text('Select a parent'),
+                items: parents
+                    .map((p) => DropdownMenuItem<int?>(
+                        value: p.userId, child: Text(p.name)))
+                    .toList(),
+                onChanged: (parentsLoading || parents.isEmpty)
+                    ? null
+                    : _onParentChanged,
               ),
               const SizedBox(height: 14),
-              TextField(
-                controller: _studentCtrl,
-                keyboardType: TextInputType.number,
+
+              // ── Student (optional, filtered to the selected parent's children)
+              DropdownButtonFormField<int?>(
+                initialValue: _studentId,
                 decoration: const InputDecoration(
-                  labelText: 'Student ID (optional)',
+                  labelText: 'Student (optional)',
                   prefixIcon: Icon(Icons.child_care_rounded),
                 ),
+                hint: _parentUserId == null
+                    ? const Text('Select a parent first')
+                    : students.isEmpty
+                        ? const Text('No students found')
+                        : const Text('All students'),
+                items: [
+                  if (_parentUserId != null)
+                    const DropdownMenuItem<int?>(
+                        value: null, child: Text('All students')),
+                  for (final s in students)
+                    DropdownMenuItem<int?>(value: s.id, child: Text(s.name)),
+                ],
+                onChanged: (_parentUserId == null || students.isEmpty)
+                    ? null
+                    : (v) => setState(() => _studentId = v),
               ),
               const SizedBox(height: 14),
+
+              // ── Subject (optional) ───────────────────────────────────
               TextField(
-                controller: _subjectCtrl,
+                controller: _subjectCtl,
+                enabled: _parentUserId != null,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
                   labelText: 'Subject (optional)',
                   prefixIcon: Icon(Icons.subject_rounded),
+                  hintText: 'e.g. Homework update',
                 ),
+                onChanged: (v) => setState(
+                    () => _subject = v.trim().isEmpty ? null : v.trim()),
               ),
               const SizedBox(height: 14),
+
+              // ── Body ─────────────────────────────────────────────────
               TextField(
-                controller: _bodyCtrl,
-                maxLines: 5,
+                controller: _bodyCtl,
+                minLines: 5,
+                maxLines: 10,
+                enabled: _parentUserId != null,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
                   labelText: 'Message *',
                   alignLabelWithHint: true,
                   prefixIcon: Padding(
-                    padding: EdgeInsets.only(bottom: 72),
-                    child: Icon(Icons.message_rounded),
+                    padding: EdgeInsets.only(bottom: 80),
+                    child: Icon(Icons.notes_rounded),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
+
+              // ── Send ─────────────────────────────────────────────────
               AppButton.primary(
-                label: 'Send',
+                label: 'Send Message',
                 icon: Icons.send_rounded,
                 fullWidth: true,
                 size: AppButtonSize.lg,
                 loading: sending,
-                onPressed: sending ? null : () => _submit(context),
+                onPressed: sending ? null : () => _send(context),
               ),
             ],
           ),
@@ -448,24 +648,25 @@ class _ComposeSheetState extends State<_ComposeSheet> {
     );
   }
 
-  Future<void> _submit(BuildContext context) async {
-    final receiver = int.tryParse(_receiverCtrl.text.trim());
-    final body = _bodyCtrl.text.trim();
-    if (receiver == null || body.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Recipient user ID and message are required.')),
-      );
+  Future<void> _send(BuildContext context) async {
+    final body = _bodyCtl.text.trim();
+
+    if (_parentUserId == null) {
+      _snack(context, 'Please select a parent.');
       return;
     }
+    if (body.isEmpty) {
+      _snack(context, 'Please write a message.');
+      return;
+    }
+
     final ok = await context.read<TeacherMessagesCubit>().send(
-          receiverUserId: receiver,
-          studentId: int.tryParse(_studentCtrl.text.trim()),
-          subject: _subjectCtrl.text.trim().isEmpty
-              ? null
-              : _subjectCtrl.text.trim(),
+          receiverUserId: _parentUserId!,
+          studentId: _studentId,
+          subject: _subject,
           body: body,
         );
+
     if (!context.mounted) return;
     if (ok) {
       Navigator.pop(context);
@@ -474,4 +675,7 @@ class _ComposeSheetState extends State<_ComposeSheet> {
       );
     }
   }
+
+  void _snack(BuildContext context, String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 }

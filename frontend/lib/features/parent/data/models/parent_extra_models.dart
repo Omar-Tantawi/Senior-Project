@@ -1,6 +1,37 @@
 import 'package:equatable/equatable.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// TeacherSummaryModel — lightweight teacher record for compose-message picker
+// Shape from GET /parent/{id}/teachers : { teachers: [ { id, name } ] }
+// ─────────────────────────────────────────────────────────────────────────────
+
+class TeacherSummaryModel extends Equatable {
+  final int id;
+  final String name;
+  /// Subjects this teacher teaches for a specific child.
+  /// Only populated when fetched via the per-child endpoint.
+  final List<String> subjects;
+
+  const TeacherSummaryModel({
+    required this.id,
+    required this.name,
+    this.subjects = const [],
+  });
+
+  factory TeacherSummaryModel.fromJson(Map<String, dynamic> json) =>
+      TeacherSummaryModel(
+        id: json['id'] as int,
+        name: json['name'] as String,
+        subjects: (json['subjects'] as List<dynamic>? ?? [])
+            .map((s) => s as String)
+            .toList(),
+      );
+
+  @override
+  List<Object> get props => [id, name, subjects];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ChildDetailModel — richer per-child info from GET /parent/{id}/children
 // Shape: { total_children, children: [ { student_id, name, relationship, ... } ] }
 // ─────────────────────────────────────────────────────────────────────────────

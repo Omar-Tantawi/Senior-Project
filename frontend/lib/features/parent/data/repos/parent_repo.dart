@@ -144,6 +144,23 @@ class ParentRepo {
 
   // ── Messages (teacher ↔ parent) ────────────────────────────────────────────
 
+  Future<List<TeacherSummaryModel>> getTeachers() async {
+    final res = await api.getApi(AppUrl.parentTeachers(parentId));
+    final map = res as Map<String, dynamic>;
+    return (map['teachers'] as List<dynamic>? ?? [])
+        .map((t) => TeacherSummaryModel.fromJson(t as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Returns teachers for a specific child, each with the subjects they teach.
+  Future<List<TeacherSummaryModel>> getTeachersForChild(int childId) async {
+    final res = await api.getApi(AppUrl.parentChildTeachers(parentId, childId));
+    final map = res as Map<String, dynamic>;
+    return (map['teachers'] as List<dynamic>? ?? [])
+        .map((t) => TeacherSummaryModel.fromJson(t as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<List<MessageModel>> getMessages({int? page, int? perPage}) async {
     final res = await api.getApi(
       AppUrl.parentMessages(parentId),

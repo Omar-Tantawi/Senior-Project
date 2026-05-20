@@ -32,6 +32,7 @@ use App\Http\Controllers\Teacher\PerformanceReportController;
 use App\Http\Controllers\Teacher\BehaviorLogController;
 use App\Http\Controllers\Teacher\ProfileController as TeacherProfileController;
 use App\Http\Controllers\Teacher\SalaryController as TeacherSalaryController;
+use App\Http\Controllers\Teacher\ParentsController as TeacherParentsController;
 use App\Http\Controllers\Student\HomeworkController as StudentHomeworkController;
 use App\Http\Controllers\Student\NotificationController as StudentNotificationController;
 use App\Http\Controllers\Student\MarksController as StudentMarksController;
@@ -82,6 +83,7 @@ use App\Http\Controllers\Webhook\FightAlertWebhookController;
 use App\Http\Controllers\Admin\ReportCardController;
 use App\Http\Controllers\AssessmentCalendarController;
 use App\Http\Controllers\ParentControllers\StripeController;
+use App\Http\Controllers\ParentControllers\TeachersController as ParentTeachersController;
 use App\Http\Controllers\Webhook\StripeWebhookController;
 
 /*
@@ -412,6 +414,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{teacherId}/homework/{id}/submissions',                        [HomeworkController::class, 'submissions']);
         Route::put('/{teacherId}/homework/{id}/submissions/{submissionId}/grade',   [HomeworkController::class, 'grade']);
 
+        // Parents of the teacher's students (for compose-message picker)
+        Route::get('/{teacherId}/parents', [TeacherParentsController::class, 'index']);
+
         // Messages to/from parents
         Route::get('/{teacherId}/messages',       [MessageController::class, 'sent']);
         Route::get('/{teacherId}/messages/inbox', [MessageController::class, 'inbox']);
@@ -535,6 +540,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{parentId}/notes/{recipientId}/read', [SchoolNoteController::class, 'markRead']);
 
         // Messages (to/from teachers)
+        Route::get('/{parentId}/teachers',                              [ParentTeachersController::class, 'index']);
+        Route::get('/{parentId}/children/{childId}/teachers',          [ParentTeachersController::class, 'forChild']);
         Route::get('/{parentId}/messages',      [ParentMessageController::class, 'index']);
         Route::post('/{parentId}/messages',     [ParentMessageController::class, 'send']);
         Route::get('/{parentId}/messages/{id}', [ParentMessageController::class, 'show']);

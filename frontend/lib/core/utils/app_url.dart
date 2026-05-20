@@ -85,6 +85,7 @@ class AppUrl {
   static String teacherAssessmentCalendar(int id) =>
       '$_api/teacher/$id/assessment-calendar';
   // Messages — sent list / inbox / send / show
+  static String teacherParents(int id)        => '$_api/teacher/$id/parents';
   static String teacherMessages(int id)      => '$_api/teacher/$id/messages';
   static String teacherMessagesInbox(int id) => '$_api/teacher/$id/messages/inbox';
   static String teacherMessage(int id, int msgId) =>
@@ -142,6 +143,8 @@ class AppUrl {
   // recipientId — the NotificationRecipient id returned in the notes list
   static String parentMarkNoteRead(int id, int recipientId) =>
       '$_api/parent/$id/notes/$recipientId/read';                    // PUT
+  static String parentTeachers(int id)             => '$_api/parent/$id/teachers';
+  static String parentChildTeachers(int id, int childId) => '$_api/parent/$id/children/$childId/teachers';
   static String parentMessages(int id)    => '$_api/parent/$id/messages';
   static String parentMessage(int id, int messageId) =>
       '$_api/parent/$id/messages/$messageId';

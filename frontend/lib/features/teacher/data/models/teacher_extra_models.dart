@@ -1,6 +1,57 @@
 import 'package:equatable/equatable.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// StudentLinkModel — a student record attached to a ParentSummaryModel
+// ─────────────────────────────────────────────────────────────────────────────
+
+class StudentLinkModel extends Equatable {
+  final int id;
+  final String name;
+
+  const StudentLinkModel({required this.id, required this.name});
+
+  factory StudentLinkModel.fromJson(Map<String, dynamic> json) =>
+      StudentLinkModel(
+        id: json['id'] as int,
+        name: (json['name'] as String?) ?? 'Unknown',
+      );
+
+  @override
+  List<Object> get props => [id, name];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ParentSummaryModel — lightweight parent record for compose-message picker
+// Shape from GET /teacher/{id}/parents :
+//   { parents: [ { user_id, name, students: [{ id, name }] } ] }
+// Note: user_id is the User.id used as receiver_id when sending a message.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class ParentSummaryModel extends Equatable {
+  final int userId;   // User.id — passed as receiver_id when sending
+  final String name;
+  final List<StudentLinkModel> students;
+
+  const ParentSummaryModel({
+    required this.userId,
+    required this.name,
+    this.students = const [],
+  });
+
+  factory ParentSummaryModel.fromJson(Map<String, dynamic> json) =>
+      ParentSummaryModel(
+        userId: json['user_id'] as int,
+        name: (json['name'] as String?) ?? 'Unknown',
+        students: (json['students'] as List<dynamic>? ?? [])
+            .map((s) => StudentLinkModel.fromJson(s as Map<String, dynamic>))
+            .toList(),
+      );
+
+  @override
+  List<Object> get props => [userId, name, students];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TeacherMessage — sent list item / inbox item / detail
 // Backend paginates; list endpoints return { data: [ ... ] } (sent) or
 // { unread_count, messages: { data: [ ... ] } } (inbox).

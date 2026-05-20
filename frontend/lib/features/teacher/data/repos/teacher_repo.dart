@@ -222,6 +222,16 @@ class TeacherRepo {
 
   // ── Messages ───────────────────────────────────────────────────────────────
 
+  /// Returns the parents of all students taught by this teacher.
+  /// Used to populate the recipient dropdown in the compose sheet.
+  Future<List<ParentSummaryModel>> getParents() async {
+    final res = await api.getApi(AppUrl.teacherParents(teacherId));
+    final map = res as Map<String, dynamic>;
+    return (map['parents'] as List<dynamic>? ?? [])
+        .map((p) => ParentSummaryModel.fromJson(p as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<List<TeacherMessageModel>> getSentMessages({
     int? receiverId,
     int? studentId,
