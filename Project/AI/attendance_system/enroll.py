@@ -1,295 +1,169 @@
+"""Student Enrollment Script.
+
+Usage:
+    python enroll.py --student-id 12345 --student-name "John Doe"
+    python enroll.py --student-id 12345 --student-name "John Doe" --photos 5
+
+Captures face photos from webcam, extracts embeddings, and saves them to disk.
 """
-enroll.py — Build the student embedding database from enrollment photos.
-
-HOW TO USE:
-    1. Organize your student photos like this:
-
-        data/students/
-            S001_Alice_Johnson/
-                photo1.jpg
-                photo2.jpg
-                photo3.jpg   ← ideally 5-10 photos per student
-            S002_Bob_Smith/
-                front.jpg
-                side.jpg
-            ...
-
-       Folder name format: <StudentID>_<FirstName>_<LastName>
-       (underscores separate ID from name parts)
-
-    2. Run:
-        python enroll.py --student_dir data/students/
-
-       Or to add a single new student without re-enrolling everyone:
-        python enroll.py --student_dir data/students/ --student_id S003
-
-    3. The script saves the FAISS index to data/embeddings/.
-
-DATA AUGMENTATION:
-    If a student has fewer than 5 photos, we augment each photo with:
-      - Horizontal flip
-      - Slight brightness variations (±20%)
-    This improves recognition robustness in varying classroom lighting.
-"""
-
-from __future__ import annotations
 
 import argparse
-import json
-import logging
-import re
-import sys
-from pathlib import Path
-from typing import List, Optional, Tuple
-
+import time
 import cv2
-import numpy as np
 import yaml
-from tqdm import tqdm
+import numpy as np
+from pathlib import Path
 
-# ── Logging setup ─────────────────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%H:%M:%S",
-)
-logger = logging.getLogger("enroll")
-
-# ── Local imports ─────────────────────────────────────────────────────────────
-from face_analyzer  import FaceAnalyzer
-from embedding_db   import EmbeddingDatabase
+from core.detector import FaceDetector
+from core.recognizer import FaceRecognizer
 
 
-# ── Augmentation helpers ───────────────────────────────────────────────────────
-
-def augment_image(img: np.ndarray) -> List[np.ndarray]:
-    """
-    Return a list of augmented versions of `img`.
-    Used when a student has very few enrollment photos.
-    """
-    augmented = [img]  # always include original
-
-    # Horizontal flip — captures slightly different face angle
-    augmented.append(cv2.flip(img, 1))
-
-    # Brightness variations — simulate different classroom lighting
-    for factor in [0.8, 1.2]:
-        bright = np.clip(img.astype(np.float32) * factor, 0, 255).astype(np.uint8)
-        augmented.append(bright)
-
-    # Mild Gaussian blur — simulates slight defocus
-    augmented.append(cv2.GaussianBlur(img, (3, 3), 0))
-
-    return augmented
+def load_config() -> dict:
+    config_path = Path(__file__).parent / "config.yaml"
+    with open(config_path) as f:
+        return yaml.safe_load(f)
 
 
-# ── Student folder parser ──────────────────────────────────────────────────────
-
-def parse_student_folder(folder: Path) -> Tuple[str, str]:
-    """
-    Extract student_id and name from a folder name.
-
-    Expected format: "<ID>_<Name>" or "<ID>_<FirstName>_<LastName>"
-    Examples:
-        S001_Alice           → ("S001", "Alice")
-        S001_Alice_Johnson   → ("S001", "Alice Johnson")
-        2024001_John_Doe     → ("2024001", "John Doe")
-
-    Falls back to using the whole folder name if no underscore found.
-    """
-    name = folder.name
-    parts = name.split("_", 1)  # split on first underscore only
-    if len(parts) == 2:
-        student_id = parts[0]
-        display_name = parts[1].replace("_", " ")
-    else:
-        student_id   = name
-        display_name = name
-
-    return student_id, display_name
+def find_largest_face(faces):
+    """Return the face with the largest bounding box area (closest to camera)."""
+    if not faces:
+        return None
+    return max(faces, key=lambda f: (f.bbox[2] - f.bbox[0]) * (f.bbox[3] - f.bbox[1]))
 
 
-def get_image_files(folder: Path) -> List[Path]:
-    """Return all image files in a folder."""
-    extensions = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
-    return [p for p in sorted(folder.iterdir()) if p.suffix.lower() in extensions]
+def enroll_student(student_id: str, student_name: str, config: dict):
+    cam_cfg = config["camera"]
+    enroll_cfg = config["enrollment"]
+    num_photos = enroll_cfg["photos_per_student"]
+    delay = enroll_cfg["capture_delay_sec"]
 
+    print(f"\n{'='*50}")
+    print(f"  Enrolling: {student_name} (ID: {student_id})")
+    print(f"  Photos to capture: {num_photos}")
+    print(f"{'='*50}")
+    print(f"\nInstructions:")
+    print(f"  1. Face the camera directly")
+    print(f"  2. When prompted, turn slightly LEFT")
+    print(f"  3. Then turn slightly RIGHT")
+    print(f"  4. Stay natural - blink normally")
+    print(f"\nPress SPACE to capture each photo. Press Q to cancel.\n")
 
-# ── Core enrollment logic ──────────────────────────────────────────────────────
+    # Initialize
+    base_dir = Path(__file__).parent
+    det_model = str(base_dir / config["detection"]["det_model"])
+    rec_model = str(base_dir / config["detection"]["rec_model"])
 
-def enroll_student(
-    student_dir:  Path,
-    analyzer:     FaceAnalyzer,
-    database:     EmbeddingDatabase,
-    augment:      bool,
-    min_photos_warn: int,
-) -> dict:
-    """
-    Process all photos for one student and add their embeddings to the DB.
+    detector = FaceDetector(
+        det_model_path=det_model,
+        rec_model_path=rec_model,
+        det_size=tuple(config["detection"]["det_size"]),
+        det_thresh=config["detection"]["det_thresh"],
+    )
+    recognizer = FaceRecognizer(
+        embeddings_dir=config["storage"]["embeddings_dir"],
+        similarity_threshold=config["recognition"]["similarity_threshold"],
+    )
 
-    Returns a summary dict with enrollment statistics.
-    """
-    student_id, name = parse_student_folder(student_dir)
-    image_files = get_image_files(student_dir)
+    if recognizer.is_enrolled(student_id):
+        print(f"[WARNING] Student {student_id} is already enrolled.")
+        resp = input("Overwrite? (y/n): ").strip().lower()
+        if resp != "y":
+            print("Enrollment cancelled.")
+            return
 
-    if not image_files:
-        logger.warning("[%s] No images found in %s", student_id, student_dir)
-        return {"student_id": student_id, "name": name, "success": 0, "failed": 0}
+    cap = cv2.VideoCapture(cam_cfg["source"])
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_cfg["width"])
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_cfg["height"])
 
-    if len(image_files) < min_photos_warn:
-        logger.warning(
-            "[%s] Only %d photo(s) — recommend at least %d for better accuracy.",
-            student_id, len(image_files), min_photos_warn
-        )
+    if not cap.isOpened():
+        print("[ERROR] Cannot open camera")
+        return
 
-    embeddings: List[np.ndarray] = []
-    photo_paths: List[str]       = []
-    failed: int                  = 0
+    embeddings = []
+    poses = ["FRONT", "SLIGHT LEFT", "SLIGHT RIGHT", "FRONT (natural)", "FRONT (different expression)"]
 
-    for photo_path in image_files:
-        img = cv2.imread(str(photo_path))
-        if img is None:
-            logger.warning("[%s] Cannot read image: %s", student_id, photo_path)
-            failed += 1
-            continue
+    captured = 0
+    faces = []
+    print("  [INFO] Camera is opening... (detection runs on CPU, may be slow)")
 
-        # Decide which images to embed
-        images_to_process = augment_image(img) if augment else [img]
+    while captured < num_photos:
+        ret, frame = cap.read()
+        if not ret:
+            print("[ERROR] Failed to read frame")
+            break
 
-        for aug_img in images_to_process:
-            # Run the full detection + embedding pipeline
-            faces = analyzer.get_faces(aug_img)
+        display = frame.copy()
+        pose_label = poses[captured] if captured < len(poses) else "FRONT"
+        info = f"Photo {captured + 1}/{num_photos} - Look: {pose_label} - SPACE to capture, Q to quit"
+        cv2.putText(display, info, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+
+        # Draw previous detection results if any
+        for face in faces:
+            bbox = face.bbox.astype(int)
+            cv2.rectangle(display, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 255, 0), 2)
+        if faces:
+            largest = find_largest_face(faces)
+            bbox = largest.bbox.astype(int)
+            cv2.rectangle(display, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 3)
+            cv2.putText(display, "TARGET", (bbox[0], bbox[1] - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
+        cv2.imshow("Enrollment", display)
+        key = cv2.waitKey(1) & 0xFF
+
+        if key == ord("q"):
+            print("\nEnrollment cancelled.")
+            cap.release()
+            cv2.destroyAllWindows()
+            return
+
+        if key == ord(" "):  # Space bar
+            # Run detection only when SPACE is pressed
+            print("  [*] Detecting face... (please wait)")
+            faces = detector.detect_faces(frame)
 
             if not faces:
-                logger.warning(
-                    "[%s] No face detected in %s (augmented)",
-                    student_id, photo_path.name
-                )
-                failed += 1
+                print("  [!] No face detected. Try again.")
                 continue
 
-            if len(faces) > 1:
-                # Multiple faces — pick the largest (most prominent)
-                face = max(faces, key=lambda f: f.height)
-                logger.warning(
-                    "[%s] Multiple faces in %s — using largest.",
-                    student_id, photo_path.name
-                )
-            else:
-                face = faces[0]
+            largest = find_largest_face(faces)
+            if largest.embedding is None:
+                print("  [!] Could not extract embedding. Try again.")
+                continue
 
-            embeddings.append(face.embedding)
-            photo_paths.append(str(photo_path))
+            embeddings.append(largest.embedding)
+            captured += 1
+            print(f"  [+] Captured photo {captured}/{num_photos} ({pose_label})")
 
-    if not embeddings:
-        logger.error("[%s] Could not extract ANY embeddings. Check photo quality.", student_id)
-        return {"student_id": student_id, "name": name, "success": 0, "failed": failed}
+            if captured < num_photos:
+                # Brief pause between captures
+                time.sleep(delay)
 
-    # Add all embeddings to database
-    database.add_student_embeddings(student_id, name, embeddings, photo_paths)
+    cap.release()
+    cv2.destroyAllWindows()
 
-    logger.info(
-        "[%s] %-25s → %d embeddings enrolled (%d failed)",
-        student_id, name, len(embeddings), failed
-    )
-    return {
-        "student_id": student_id,
-        "name":       name,
-        "success":    len(embeddings),
-        "failed":     failed,
-    }
+    if len(embeddings) < 3:
+        print(f"\n[ERROR] Need at least 3 photos, got {len(embeddings)}. Enrollment failed.")
+        return
+
+    # Save embeddings
+    recognizer.enroll_student(student_id, student_name, embeddings)
+    print(f"\n[SUCCESS] {student_name} enrolled with {len(embeddings)} photos!")
 
 
-# ── Main ─────────────────────────────────────────────────────────────────────
+def main():
+    parser = argparse.ArgumentParser(description="Enroll a student for face recognition")
+    parser.add_argument("--student-id", required=True, help="Student ID number")
+    parser.add_argument("--student-name", required=True, help="Student full name")
+    parser.add_argument("--photos", type=int, help="Number of photos to capture (overrides config)")
+    args = parser.parse_args()
 
-def main(args: argparse.Namespace) -> None:
-    # Load config
-    with open(args.config, "r") as f:
-        config = yaml.safe_load(f)
+    config = load_config()
+    if args.photos:
+        config["enrollment"]["photos_per_student"] = args.photos
 
-    if args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-
-    # Initialize models
-    logger.info("Loading face detection + recognition models...")
-    analyzer = FaceAnalyzer(config)
-    database = EmbeddingDatabase(config)
-
-    student_root = Path(args.student_dir)
-    if not student_root.exists():
-        logger.error("Student directory not found: %s", student_root)
-        sys.exit(1)
-
-    # Determine which students to enroll
-    if args.student_id:
-        # Enroll a single student by ID prefix
-        student_dirs = [
-            d for d in student_root.iterdir()
-            if d.is_dir() and d.name.startswith(args.student_id)
-        ]
-        if not student_dirs:
-            logger.error("No folder found for student ID: %s", args.student_id)
-            sys.exit(1)
-    else:
-        # Enroll all students
-        student_dirs = [d for d in sorted(student_root.iterdir()) if d.is_dir()]
-
-    logger.info("Found %d student folder(s) to process.", len(student_dirs))
-
-    augment = config["enrollment"]["augment"]
-    min_warn = config["enrollment"]["min_photos_warning"]
-
-    summaries = []
-    for student_dir in tqdm(student_dirs, desc="Enrolling students"):
-        summary = enroll_student(student_dir, analyzer, database, augment, min_warn)
-        summaries.append(summary)
-
-    # Save database
-    database.save()
-
-    # Print summary
-    total_ok   = sum(s["success"] for s in summaries)
-    total_fail = sum(s["failed"]  for s in summaries)
-    enrolled   = [s for s in summaries if s["success"] > 0]
-
-    print("\n" + "="*55)
-    print(f"  Enrollment Complete")
-    print("="*55)
-    print(f"  Students enrolled : {len(enrolled)}")
-    print(f"  Total embeddings  : {total_ok}")
-    print(f"  Failed images     : {total_fail}")
-    print(f"  Database saved to : {config['paths']['faiss_index']}")
-    print("="*55)
-
-    if args.list:
-        print("\nEnrolled students:")
-        for s in database.student_list:
-            print(f"  {s['student_id']:10s}  {s['name']}")
+    enroll_student(args.student_id, args.student_name, config)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Enroll students into the face recognition database.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Enroll all students in data/students/
-  python enroll.py
-
-  # Enroll all with custom student directory
-  python enroll.py --student_dir /path/to/photos/
-
-  # Re-enroll a single student
-  python enroll.py --student_id S001
-
-  # List all enrolled students after enrollment
-  python enroll.py --list
-        """
-    )
-    parser.add_argument("--config",      default="config.yaml",    help="Path to config.yaml")
-    parser.add_argument("--student_dir", default="data/students/", help="Root folder of student photos")
-    parser.add_argument("--student_id",  default=None,             help="Enroll only this student ID")
-    parser.add_argument("--list",        action="store_true",       help="List all enrolled students after done")
-    parser.add_argument("--debug",       action="store_true",       help="Enable debug logging")
-    args = parser.parse_args()
-    main(args)
+    main()

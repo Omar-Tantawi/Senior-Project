@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<title>Bilingual Textbook QA System Report</title>
+<style>
+  body { font-family: Georgia, 'Times New Roman', serif; margin: 48px 56px; color: #111; line-height: 1.45; }
+  h1, h2, h3 { color: #17324d; margin-top: 1.2em; }
+  h1 { font-size: 28px; margin-top: 0; }
+  h2 { font-size: 21px; border-bottom: 1px solid #d9e2ec; padding-bottom: 4px; }
+  h3 { font-size: 16px; }
+  p, li { font-size: 12px; }
+  code { background: #f3f6f9; padding: 1px 4px; border-radius: 3px; }
+  .small { font-size: 11px; color: #444; }
+  .box { background: #f8fbff; border: 1px solid #cfdceb; padding: 12px 14px; border-radius: 6px; }
+  .warn { background: #fff8e8; border-color: #e8cf8b; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; }
+  th, td { border: 1px solid #cfd8df; padding: 8px; vertical-align: top; font-size: 12px; }
+  th { background: #eef4f8; text-align: left; }
+  a { color: #0b57d0; text-decoration: none; }
+  ul, ol { margin-top: 6px; }
+  .pagebreak { page-break-before: always; }
+</style>
+</head>
+<body>
+<h1>Bilingual Textbook Question-Answering System</h1>
+<p><strong>Goal:</strong> Build an AI assistant where a student asks a question and the system answers first from the textbook itself, then gives a simple explanation and one or more examples. The system must support <strong>both Arabic and English books</strong>, because some student questions come from Arabic textbooks and others come from English textbooks.</p>
+<p class="small">Prepared on April 15, 2026. This report covers bilingual Arabic-English textbook QA, retrieval, explanation generation, model choices, public datasets, and fine-tuning.</p>
+
+<h2>1. Does This Require AI?</h2>
+<p><strong>Yes.</strong> The full product is a combination of normal software and AI.</p>
+<ul>
+  <li><strong>Normal software</strong> handles upload, storage, database, user accounts, interface, language routing, and logging.</li>
+  <li><strong>AI</strong> handles semantic retrieval, question understanding, answer grounding, explanation generation, and example generation.</li>
+</ul>
+<div class="box">
+  <p><strong>Best framing:</strong> This is not training a model from zero. It is usually a <strong>Retrieval-Augmented Generation (RAG)</strong> system built on top of pretrained Arabic-capable and English-capable models.</p>
+</div>
+
+<h2>2. Bilingual Requirement: Arabic and English</h2>
+<p>Your final system should support two cases:</p>
+<ol>
+  <li><strong>Arabic question + Arabic textbook</strong></li>
+  <li><strong>English question + English textbook</strong></li>
+</ol>
+<p>A stronger version can also support:</p>
+<ol>
+  <li><strong>Arabic question + English textbook</strong></li>
+  <li><strong>English question + Arabic textbook</strong></li>
+</ol>
+<div class="box warn">
+  <p><strong>Recommended first scope:</strong> start with same-language retrieval first. That means Arabic questions search Arabic books, and English questions search English books. Cross-language retrieval can be added later if needed.</p>
+</div>
+
+<h3>Recommended bilingual output policy</h3>
+<ul>
+  <li>If the source book is Arabic, the quoted answer should stay in Arabic.</li>
+  <li>If the source book is English, the quoted answer should stay in English.</li>
+  <li>The explanation can follow the student's preferred language.</li>
+  <li>The final UI can include a language selector: <code>Arabic</code>, <code>English</code>, or <code>same as source</code>.</li>
+</ul>
+
+<h2>3. Recommended System Design</h2>
+<p>For your use case, the safest design is:</p>
+<ol>
+  <li><strong>Detect language</strong> of the question or use the chosen book language.</li>
+  <li><strong>Retrieve</strong> the relevant paragraph or section from the correct textbook collection.</li>
+  <li><strong>Extract</strong> the exact answer span or best supporting sentence from that passage.</li>
+  <li><strong>Generate</strong> a simple explanation and example using only that evidence.</li>
+</ol>
+<div class="box warn">
+  <p><strong>Why this order matters:</strong> If the model explains first without grounding itself in the book, it may hallucinate. For educational use, a quote-first, explain-second pipeline is much safer.</p>
+</div>
+
+<h3>Output format</h3>
+<ol>
+  <li><strong>From the book:</strong> exact quote or faithful extract</li>
+  <li><strong>Explanation:</strong> simpler explanation in Arabic or English</li>
+  <li><strong>Example:</strong> one short example</li>
+  <li><strong>Source:</strong> chapter, section, page</li>
+</ol>
+
+<h2>4. Technical Architecture</h2>
+<table>
+  <tr><th>Module</th><th>Role</th></tr>
+  <tr><td>Frontend</td><td>Student submits Arabic or English questions and sees structured answers with source citations.</td></tr>
+  <tr><td>Language router</td><td>Detects Arabic or English and routes the request to the correct retrieval pipeline.</td></tr>
+  <tr><td>Book ingestion</td><td>Extracts text from Arabic or English PDF/EPUB, cleans it, chunks it, and stores metadata.</td></tr>
+  <tr><td>Embedding service</td><td>Converts each chunk into a semantic vector using multilingual or language-specific embeddings.</td></tr>
+  <tr><td>Retriever</td><td>Finds the most relevant chunks using embeddings, keywords, or hybrid search.</td></tr>
+  <tr><td>Reader / answer module</td><td>Selects exact supporting text and generates explanation plus example.</td></tr>
+  <tr><td>Verifier</td><td>Checks whether the answer is truly supported by retrieved text.</td></tr>
+  <tr><td>Databases</td><td>Stores users, books, chunks, logs, and vector embeddings.</td></tr>
+</table>
+
+<h3>Flow</h3>
+<p><code>Arabic/English textbook -&gt; text extraction -&gt; chunking -&gt; embeddings -&gt; vector database</code></p>
+<p><code>Arabic/English question -&gt; language routing -&gt; retrieval -&gt; evidence selection -&gt; answer generation -&gt; grounded response</code></p>
+
+<h2>5. Language-Specific Challenges</h2>
+<ul>
+  <li><strong>Arabic normalization:</strong> diacritics, alef variants, ta marbuta, ya/alef maqsura, punctuation.</li>
+  <li><strong>Arabic PDF extraction quality:</strong> Arabic PDFs can have line-order and shaping issues.</li>
+  <li><strong>English textbook structure:</strong> tables, captions, formulas, and side-notes may affect chunking.</li>
+  <li><strong>Mixed-language education:</strong> a student may ask in Arabic about an English book or vice versa.</li>
+  <li><strong>Terminology mismatch:</strong> scientific terms may appear in English inside Arabic questions.</li>
+</ul>
+
+<h2>6. Best Build Strategy</h2>
+<p><strong>Phase 1:</strong> Build a bilingual RAG system with pretrained models. Do not train a base model from scratch.</p>
+<p><strong>Phase 2:</strong> If needed, fine-tune either:</p>
+<ul>
+  <li>a bilingual retriever for textbook search,</li>
+  <li>an extractive QA model for exact answer spans,</li>
+  <li>or an instruction/generation model for better explanations.</li>
+</ul>
+
+<h2>7. Which Models Should You Use?</h2>
+<p><strong>Yes, the models are pretrained.</strong> In modern NLP, you almost always start from pretrained models and then adapt them.</p>
+
+<h3>7.1 Recommended model stack for the first version</h3>
+<table>
+  <tr><th>Task</th><th>Recommended type</th><th>Examples</th><th>Pretrained?</th></tr>
+  <tr><td>Embeddings / retrieval</td><td>Multilingual sentence embedding model</td><td><code>multilingual-e5</code>, <code>bge-m3</code>, multilingual sentence-transformer variants</td><td>Yes</td></tr>
+  <tr><td>Arabic exact answer extraction</td><td>Arabic encoder fine-tuned for extractive QA</td><td><code>AraBERT</code>, <code>ARBERT</code>, <code>MARBERT</code>, <code>CAMeLBERT</code></td><td>Yes</td></tr>
+  <tr><td>English exact answer extraction</td><td>English encoder fine-tuned for extractive QA</td><td><code>BERT</code>, <code>RoBERTa</code>, <code>DeBERTa</code></td><td>Yes</td></tr>
+  <tr><td>Explanation generation</td><td>Multilingual or bilingual generative model</td><td><code>mT5</code>, <code>AraT5</code>, multilingual LLM/API model</td><td>Yes</td></tr>
+  <tr><td>Optional reranker</td><td>Cross-encoder or reranking model</td><td>Arabic, English, or multilingual cross-encoder</td><td>Yes</td></tr>
+</table>
+
+<h3>7.2 Practical recommendation</h3>
+<ul>
+  <li><strong>Fastest MVP:</strong> one multilingual embedding model + one multilingual generative model.</li>
+  <li><strong>More accurate academic version:</strong> multilingual retriever + Arabic QA model + English QA model + generator.</li>
+</ul>
+<p>This means your system can first find the passage, then extract the answer, then explain it.</p>
+
+<h2>8. Can You Train a New Model?</h2>
+<p><strong>Yes, but there are three different meanings of train:</strong></p>
+<ol>
+  <li><strong>Use pretrained model only:</strong> no new training, only prompting and retrieval.</li>
+  <li><strong>Fine-tune a pretrained model:</strong> most realistic for a student project.</li>
+  <li><strong>Pretrain a brand-new model from scratch:</strong> usually too expensive and unnecessary.</li>
+</ol>
+<p>For your project, <strong>fine-tuning pretrained models</strong> is the right path if the basic RAG system is not enough.</p>
+
+<h2>9. What Data Do You Need?</h2>
+<h3>9.1 Minimum data for an MVP</h3>
+<ul>
+  <li>Arabic and English textbook files</li>
+  <li>metadata: title, chapter, section, page, language</li>
+  <li>a set of sample student questions in Arabic and English</li>
+</ul>
+
+<h3>9.2 Data for fine-tuning</h3>
+<table>
+  <tr><th>Training target</th><th>Needed data format</th></tr>
+  <tr><td>Retriever</td><td><code>(question, positive passage, negative passages)</code></td></tr>
+  <tr><td>Extractive QA model</td><td><code>(context, question, answer_text, start_char)</code></td></tr>
+  <tr><td>Generator / explainer</td><td><code>(question, evidence passage, target answer with explanation)</code></td></tr>
+  <tr><td>Instruction tuning</td><td><code>(instruction, input, output)</code></td></tr>
+</table>
+
+<h3>9.3 If you cannot collect data from your own books</h3>
+<p>That is completely workable. You can start with <strong>public internet datasets</strong> for Arabic and English, then later test on your book collection through RAG.</p>
+<ul>
+  <li><strong>Arabic QA datasets:</strong> ARCD, Arabic-SQuAD, TyDi QA Arabic, MLQA Arabic, XQuAD Arabic.</li>
+  <li><strong>English QA datasets:</strong> SQuAD, Natural Questions, HotpotQA, RACE, NarrativeQA.</li>
+  <li><strong>Multilingual QA datasets:</strong> TyDi QA, MLQA, XQuAD, XOR QA.</li>
+  <li><strong>Retrieval datasets:</strong> MS MARCO for English warm-start, multilingual retrieval benchmarks, BEIR-style tasks where available.</li>
+</ul>
+<div class="box">
+  <p><strong>Important limitation:</strong> public internet datasets are useful for fine-tuning general question answering, but they are not the same as your exact textbook domain. So the best plan is to use public data for warm-start training and rely on RAG over your actual books during inference.</p>
+</div>
+
+<h3>9.4 Suggested online data sources</h3>
+<table>
+  <tr><th>Dataset</th><th>Language</th><th>Use</th><th>Where to get it</th></tr>
+  <tr><td>ARCD</td><td>Arabic</td><td>Extractive QA</td><td>Hugging Face or ACL paper resources</td></tr>
+  <tr><td>Arabic-SQuAD</td><td>Arabic</td><td>Extractive QA</td><td>Often distributed through research repos and dataset hubs</td></tr>
+  <tr><td>TyDi QA</td><td>Multilingual including Arabic and English</td><td>Multilingual QA</td><td>Google Research / Hugging Face</td></tr>
+  <tr><td>MLQA</td><td>Multilingual including Arabic and English</td><td>Cross-lingual QA</td><td>Hugging Face / original repo</td></tr>
+  <tr><td>XQuAD</td><td>Multilingual including Arabic and English</td><td>Evaluation and warm-start</td><td>Hugging Face / original repo</td></tr>
+  <tr><td>SQuAD</td><td>English</td><td>Extractive QA</td><td>Stanford / Hugging Face</td></tr>
+  <tr><td>Natural Questions</td><td>English</td><td>Open-domain QA</td><td>Google Research</td></tr>
+  <tr><td>RACE</td><td>English</td><td>Reading comprehension</td><td>Dataset hubs and original paper resources</td></tr>
+</table>
+
+<h3>9.5 Example row for a custom bilingual training sample</h3>
+<pre>{
+  "language": "ar",
+  "book_id": "physics_grade10",
+  "chapter": "??????",
+  "page": 42,
+  "question": "?? ?? ????????",
+  "evidence": "??????? ?? ???? ???? ?????? ??????? ?????.",
+  "quoted_answer": "??????? ?? ???? ???? ?????? ??????? ?????.",
+  "explanation": "???? ??? ?? ???? ????? ???? ?? ???? ?? ???? ?????.",
+  "example": "??? ???? ???? ??????? ?? 20 ??? 40 ???? ??????? ???? ???? ???? ?????."
+}</pre>
+<pre>{
+  "language": "en",
+  "book_id": "biology_unit3",
+  "chapter": "Cells",
+  "page": 18,
+  "question": "What is diffusion?",
+  "evidence": "Diffusion is the movement of particles from an area of higher concentration to an area of lower concentration.",
+  "quoted_answer": "Diffusion is the movement of particles from an area of higher concentration to an area of lower concentration.",
+  "explanation": "This means particles naturally spread out from crowded places to less crowded places.",
+  "example": "Perfume smell spreading across a room is an example of diffusion."
+}</pre>
+
+<div class="pagebreak"></div>
+<h2>10. Fine-Tuning Plan</h2>
+<h3>10.1 Fine-tuning the retriever</h3>
+<p><strong>Goal:</strong> retrieve the correct Arabic or English textbook paragraph.</p>
+<ol>
+  <li>Build question-passage pairs from public QA datasets and any accessible educational text.</li>
+  <li>For each question, mark one correct paragraph and several hard negatives.</li>
+  <li>Train a bi-encoder using contrastive loss.</li>
+  <li>Evaluate with Recall@k and MRR.</li>
+</ol>
+
+<h3>10.2 Fine-tuning the extractive QA model</h3>
+<p><strong>Goal:</strong> return the literal answer from the source passage.</p>
+<ol>
+  <li>Format Arabic and English context-question pairs.</li>
+  <li>Mark exact answer spans inside the context.</li>
+  <li>Fine-tune Arabic and English span-extraction models, or use one multilingual model.</li>
+  <li>Evaluate with Exact Match and F1.</li>
+</ol>
+
+<h3>10.3 Fine-tuning the generator</h3>
+<p><strong>Goal:</strong> produce a simple explanation and an example in Arabic or English.</p>
+<ol>
+  <li>Create supervised examples where input includes the question and evidence passage.</li>
+  <li>Output should follow your final template: quote, explanation, example, source.</li>
+  <li>Fine-tune a sequence-to-sequence model such as AraT5 or mT5, or use parameter-efficient tuning on a multilingual LLM.</li>
+  <li>Evaluate for grounding, clarity, and hallucination rate.</li>
+</ol>
+
+<h2>11. Step-by-Step Fine-Tuning Workflow</h2>
+<ol>
+  <li><strong>Collect data</strong>: gather public Arabic and English QA datasets from the internet.</li>
+  <li><strong>Clean and normalize</strong>: Arabic normalization plus English cleanup and consistent punctuation.</li>
+  <li><strong>Prepare retrieval pairs</strong>: generate positives and hard negatives.</li>
+  <li><strong>Prepare QA labels</strong>: exact answer spans for Arabic and English.</li>
+  <li><strong>Prepare generation labels</strong>: target answer with explanation and example.</li>
+  <li><strong>Split the dataset</strong>: train, validation, test with no leakage.</li>
+  <li><strong>Choose the training target</strong>: retriever, reader, generator, or all three.</li>
+  <li><strong>Start with the retriever</strong>: retrieval quality usually determines overall system quality.</li>
+  <li><strong>Then fine-tune extractive QA</strong> for exact textbook-style answers.</li>
+  <li><strong>Then adapt the generator</strong> for teaching-style explanations.</li>
+  <li><strong>Run grounded evaluation</strong>: check citation correctness and unsupported claims.</li>
+  <li><strong>Deploy and log</strong>: save failed questions to improve the next version.</li>
+</ol>
+
+<h2>12. How Much Data Is Enough?</h2>
+<table>
+  <tr><th>Component</th><th>Small useful start</th><th>Better target</th></tr>
+  <tr><td>Retriever</td><td>1,000 to 3,000 question-passage pairs</td><td>5,000+</td></tr>
+  <tr><td>Extractive QA</td><td>1,000 to 2,000 labeled spans</td><td>5,000+</td></tr>
+  <tr><td>Explanation generator</td><td>500 to 1,500 high-quality supervised examples</td><td>3,000+</td></tr>
+</table>
+<p>If your data is smaller than this, do not worry. A strong RAG pipeline can still work well, especially if your textbook collection is limited and domain-specific.</p>
+
+<h2>13. How Long Does Training Take?</h2>
+<p>The answer depends on model size, dataset size, hardware, and whether you are fine-tuning the full model or using LoRA / parameter-efficient tuning.</p>
+<table>
+  <tr><th>Training target</th><th>Typical setup</th><th>Estimated time</th></tr>
+  <tr><td>Embedding retriever fine-tuning</td><td>Small to medium bi-encoder on 1 GPU</td><td>2 to 8 hours</td></tr>
+  <tr><td>Arabic or English extractive QA fine-tuning</td><td>BERT-size model on 1 GPU</td><td>1 to 6 hours</td></tr>
+  <tr><td>Multilingual extractive QA fine-tuning</td><td>mBERT / XLM-R size on 1 GPU</td><td>4 to 12 hours</td></tr>
+  <tr><td>Small seq2seq explanation model</td><td>mT5-small/base or AraT5-like model on 1 GPU</td><td>4 to 16 hours</td></tr>
+  <tr><td>LoRA fine-tuning of a larger LLM</td><td>7B-class model on strong GPU</td><td>6 to 24 hours</td></tr>
+  <tr><td>Training from scratch</td><td>Large-scale pretraining</td><td>weeks to months</td></tr>
+</table>
+<div class="box warn">
+  <p><strong>Realistic recommendation for a graduation project:</strong> plan for days, not months, by using pretrained models and fine-tuning only the necessary components. Full pretraining from scratch is not realistic unless you have major compute resources.</p>
+</div>
+<p><strong>Practical estimate:</strong> if you fine-tune a retriever, an Arabic QA model, and an English QA model on a normal research GPU, the full experimental cycle may take roughly <strong>2 to 7 days</strong> including preprocessing, training, validation, reruns, and debugging.</p>
+
+<h2>14. Recommended Software Stack</h2>
+<ul>
+  <li><strong>Frontend:</strong> React or Next.js</li>
+  <li><strong>Backend:</strong> FastAPI</li>
+  <li><strong>Vector store:</strong> Chroma or FAISS</li>
+  <li><strong>Relational database:</strong> PostgreSQL</li>
+  <li><strong>PDF extraction:</strong> PyMuPDF or pdfplumber</li>
+  <li><strong>Training/inference:</strong> PyTorch + Hugging Face Transformers</li>
+  <li><strong>Evaluation:</strong> custom scripts for retrieval accuracy, EM/F1, and grounding checks</li>
+</ul>
+
+<h2>15. Research Papers and PDF Links</h2>
+<p>The papers below are the most relevant starting set for your topic.</p>
+<table>
+  <tr><th>Paper</th><th>Why it matters</th><th>PDF / source link</th></tr>
+  <tr><td>Lewis et al., 2020, <em>Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</em></td><td>Foundational RAG paper.</td><td><a href="https://arxiv.org/pdf/2005.11401.pdf">PDF</a></td></tr>
+  <tr><td>Karpukhin et al., 2020, <em>Dense Passage Retrieval for Open-Domain Question Answering</em></td><td>Strong retriever design for QA.</td><td><a href="https://arxiv.org/pdf/2004.04906.pdf">PDF</a></td></tr>
+  <tr><td>Kim et al., 2019, <em>Textbook Question Answering with Multi-modal Context Graph Understanding and Self-supervised Open-set Comprehension</em></td><td>Directly about textbook QA.</td><td><a href="https://aclanthology.org/P19-1347.pdf">PDF</a></td></tr>
+  <tr><td>Alawwad et al., 2024, <em>Enhancing Textbook Question Answering Task with Large Language Models and Retrieval Augmented Generation</em></td><td>Very close to your project idea.</td><td><a href="https://arxiv.org/pdf/2402.05128.pdf">PDF</a></td></tr>
+  <tr><td>Slobodkin et al., 2024, <em>Attribute First, then Generate: Locally-attributable Grounded Text Generation</em></td><td>Supports your quote-first, explain-second design.</td><td><a href="https://aclanthology.org/2024.acl-long.182.pdf">PDF</a></td></tr>
+  <tr><td>Mozannar et al., 2019, <em>Neural Arabic Question Answering</em></td><td>Arabic open-domain QA and ARCD dataset.</td><td><a href="https://aclanthology.org/W19-4612.pdf">PDF</a></td></tr>
+  <tr><td>Antoun et al., 2020, <em>AraBERT: Transformer-based Model for Arabic Language Understanding</em></td><td>Key Arabic encoder model.</td><td><a href="https://aclanthology.org/2020.osact-1.2.pdf">PDF</a></td></tr>
+  <tr><td>Abdul-Mageed et al., 2021, <em>ARBERT &amp; MARBERT: Deep Bidirectional Transformers for Arabic</em></td><td>Strong Arabic pretrained encoders.</td><td><a href="https://aclanthology.org/2021.acl-long.551.pdf">PDF</a></td></tr>
+  <tr><td>Nagoudi et al., 2022, <em>AraT5: Text-to-Text Transformers for Arabic Language Generation</em></td><td>Arabic generation and seq2seq fine-tuning.</td><td><a href="https://aclanthology.org/2022.acl-long.47.pdf">PDF</a></td></tr>
+  <tr><td>Ghaddar et al., 2022, <em>Revisiting Pre-trained Language Models and their Evaluation for Arabic NLP</em></td><td>Good overview of Arabic PLMs and evaluation.</td><td><a href="https://aclanthology.org/2022.emnlp-main.205.pdf">PDF</a></td></tr>
+  <tr><td>Rajpurkar et al., 2016, <em>SQuAD: 100,000+ Questions for Machine Comprehension of Text</em></td><td>Foundational English extractive QA dataset.</td><td><a href="https://arxiv.org/pdf/1606.05250.pdf">PDF</a></td></tr>
+  <tr><td>Clark et al., 2020, <em>TyDi QA: A Benchmark for Information-Seeking Question Answering in Typologically Diverse Languages</em></td><td>Useful multilingual benchmark including Arabic and English.</td><td><a href="https://aclanthology.org/2020.tacl-1.11.pdf">PDF</a></td></tr>
+</table>
+
+<h2>16. Best Final Recommendation for Your Project</h2>
+<ol>
+  <li>Start with a <strong>bilingual RAG pipeline</strong> using pretrained models.</li>
+  <li>Use <strong>multilingual embeddings</strong> so Arabic and English are both supported.</li>
+  <li>Keep the output strictly structured: quote, explanation, example, source.</li>
+  <li>Use public internet datasets first, because you cannot annotate your own books right now.</li>
+  <li>Fine-tune the <strong>retriever first</strong>, because retrieval quality is critical.</li>
+  <li>Fine-tune Arabic and English extractive QA models if you need exact source spans.</li>
+  <li>Fine-tune the generator last for educational explanation style.</li>
+</ol>
+
+<h2>17. Suggested Project Roadmap</h2>
+<ol>
+  <li>Collect Arabic and English textbooks.</li>
+  <li>Extract and clean text.</li>
+  <li>Build chunking plus metadata pipeline with a language field.</li>
+  <li>Store multilingual embeddings in Chroma or FAISS.</li>
+  <li>Implement language routing and grounded answering.</li>
+  <li>Download public Arabic and English QA datasets from the internet.</li>
+  <li>Prepare a bilingual evaluation set.</li>
+  <li>Measure retrieval quality and answer groundedness.</li>
+  <li>Fine-tune components if needed.</li>
+</ol>
+
+<h2>18. Bottom Line</h2>
+<p><strong>Yes, you can build this.</strong> For Arabic and English textbooks, the strongest practical route is:</p>
+<p><strong>Bilingual book ingestion + multilingual retrieval + exact quoted answer + explanation + citations.</strong></p>
+<p>That means you are building an <strong>AI system on top of normal software</strong>, not only a search engine and not a model trained from zero.</p>
+</body>
+</html>

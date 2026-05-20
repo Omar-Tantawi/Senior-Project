@@ -1,0 +1,26 @@
+# Claude internal
+.claude/
+
+# Large model files - never push these (hundreds of MB each)
+*.pth
+*.onnx
+*.onnx.data
+
+# Training data
+fine_tuning/data/
+
+# Student face data (private)
+data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+
+# Logs
+*.log
+logs/
+__pycache__/ 
+*.pyc 
