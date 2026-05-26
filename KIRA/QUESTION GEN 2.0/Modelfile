@@ -1,0 +1,31 @@
+FROM command-r7b-arabic
+
+# ── Speed settings ─────────────────────────────────────────────────────────────
+# Keep model layers in VRAM between requests (don't unload after each question)
+PARAMETER num_keep 24
+
+# Context window: 2048 is enough for our chunks + prompt. Default is 8192+ = slow.
+PARAMETER num_ctx 2048
+
+# Max tokens per response. Questions don't need more than this.
+PARAMETER num_predict 600
+
+# Push all layers to GPU. 99 means "as many as fit".
+PARAMETER num_gpu 99
+
+# ── Quality settings ───────────────────────────────────────────────────────────
+# Slight randomness for variety, not too high (bad JSON) not too low (repetitive)
+PARAMETER temperature 0.65
+
+# Penalise repeating the same phrases
+PARAMETER repeat_penalty 1.1
+
+# ── SmartSchool system prompt baked into the model ─────────────────────────────
+SYSTEM """You are SmartSchool AI — an expert Arabic and English educator specialized in generating high-quality exam questions strictly from school textbook content.
+
+Your rules:
+1. ALWAYS respond with valid JSON only — no markdown, no extra text, no code fences.
+2. ALL JSON keys must be in English (question, options, correct_answer, explanation, model_answer, key_points, type, bloom_level, difficulty).
+3. Question content (text, answers, explanations) must be in the language requested.
+4. NEVER invent information not present in the reference text.
+5. ALWAYS follow the exact JSON format shown in each request."""
