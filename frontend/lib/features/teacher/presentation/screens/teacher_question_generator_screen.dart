@@ -1,14 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:first_try/core/api/api_interceptors.dart';
 import 'package:first_try/core/utils/app_url.dart';
+import 'package:first_try/core/utils/download_file.dart';
 import 'package:first_try/features/auth/current_user.dart';
 import 'package:flutter/material.dart';
-import 'package:open_file/open_file.dart';
-import 'package:path_provider/path_provider.dart';
 
 class TeacherQuestionGeneratorScreen extends StatefulWidget {
   const TeacherQuestionGeneratorScreen({super.key});
@@ -53,8 +51,7 @@ class _TeacherQuestionGeneratorScreenState
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
-      withData: false,
-      withReadStream: false,
+      withData: true,   // required on web; bytes are also used for the upload
     );
     if (result != null && result.files.isNotEmpty) {
       setState(() => _pickedFile = result.files.first);
@@ -96,8 +93,8 @@ class _TeacherQuestionGeneratorScreenState
       final pageEnd   = int.tryParse(_pageEndCtrl.text.trim());
 
       final formData = FormData.fromMap({
-        'pdf':                MultipartFile.fromFileSync(
-          _pickedFile!.path!,
+        'pdf':                MultipartFile.fromBytes(
+          _pickedFile!.bytes!,
           filename: _pickedFile!.name,
         ),
         if (pageStart != null) 'page_start': pageStart.toString(),
@@ -176,20 +173,14 @@ class _TeacherQuestionGeneratorScreenState
   }
 
   Future<void> _saveAndOpen(List<int> bytes) async {
-    final dir      = Platform.isAndroid
-        ? Directory('/storage/emulated/0/Download')
-        : await getApplicationDocumentsDirectory();
-
     final safeTitle = _title.replaceAll(RegExp(r'[^\w\s]'), '').trim();
     final filename  = '${safeTitle.isEmpty ? "exam" : safeTitle}'
         '_${DateTime.now().millisecondsSinceEpoch}.docx';
-    final file = File('${dir.path}/$filename');
-    await file.writeAsBytes(bytes);
+
+    await downloadFile(bytes, filename);
 
     if (!mounted) return;
-    _showSnack('Saved: $filename');
-
-    await OpenFile.open(file.path);
+    _showSnack('Download started: $filename');
   }
 
   @override
