@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 
 class QuestionGeneratorController extends Controller
 {
-    public function generate(Request $request)
+    public function generate(Request $request, int $teacherId)
     {
         $request->validate([
             'pdf'                => 'required|file|mimes:pdf|max:409600', // 400 MB
@@ -57,9 +57,8 @@ class QuestionGeneratorController extends Controller
 
         if ($response->failed()) {
             $body   = $response->json();
-            // Never forward a 401 from the Python service to the browser — the
-            // axios interceptor would treat it as a Sanctum auth failure and
-            // redirect the user to the login page.
+            // Never forward 401 from the Python service — it would look like a
+            // Sanctum auth failure to the client and log the teacher out.
             $status = in_array($response->status(), [400, 422, 500]) ? $response->status() : 500;
             return response()->json([
                 'message' => $body['detail'] ?? 'Question generation failed.',

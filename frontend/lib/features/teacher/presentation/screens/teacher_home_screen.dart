@@ -2,6 +2,7 @@ import 'package:first_try/core/theme/theme.dart';
 import 'package:first_try/core/widgets/ui/ui.dart';
 import 'package:first_try/features/teacher/data/models/teacher_models.dart';
 import 'package:first_try/features/teacher/presentation/screens/teacher_notifications_screen.dart';
+import 'package:first_try/features/teacher/presentation/screens/teacher_question_generator_screen.dart';
 import 'package:first_try/features/teacher/presentation/cubit/teacher_dashboard_cubit.dart';
 import 'package:first_try/features/teacher/presentation/cubit/teacher_dashboard_state.dart';
 import 'package:first_try/features/teacher/presentation/cubit/teacher_notifications_cubit.dart';
@@ -136,6 +137,27 @@ class TeacherHomeScreen extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+            ),
+
+            // ── Quick actions ─────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: SectionHeader(title: 'AI Tools'),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: _QuickActionCard(
+                  icon: Icons.auto_awesome_rounded,
+                  title: 'Question Generator',
+                  subtitle: 'Upload a PDF → get a ready-to-print .docx exam',
+                  color: const Color(0xFF6366F1),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const TeacherQuestionGeneratorScreen(),
+                    ),
+                  ),
+                ),
               ),
             ),
 
@@ -425,6 +447,77 @@ class _ScheduleTile extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QuickActionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+  const _QuickActionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: cs.surface,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: cs.outlineVariant),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 14)),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        style: TextStyle(
+                            fontSize: 12, color: cs.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded,
+                  color: cs.onSurfaceVariant, size: 20),
+            ],
+          ),
+        ),
       ),
     );
   }

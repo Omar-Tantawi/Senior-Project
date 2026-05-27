@@ -111,6 +111,8 @@ class AppUrl {
   static String teacherAvailability(int id)      => '$_api/teacher/$id/availability';
   static String teacherAvailabilityItem(int id, int slotId) =>
       '$_api/teacher/$id/availability/$slotId';
+  // Question Generator — POST multipart {pdf, ...} → binary .docx download
+  static String teacherGenerateExam(int id)      => '$_api/teacher/$id/generate-exam';
 
   // ── Parent ──────────────────────────────────────────────────────────────────
   static String parentProfile(int id)     => '$_api/parent/$id/profile';

@@ -87,6 +87,7 @@ use App\Http\Controllers\ParentControllers\TeachersController as ParentTeachersC
 use App\Http\Controllers\Webhook\StripeWebhookController;
 use App\Http\Controllers\Admin\ClassDistributionController;
 use App\Http\Controllers\Admin\QuestionGeneratorController;
+use App\Http\Controllers\Teacher\QuestionGeneratorController as TeacherQuestionGeneratorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -467,6 +468,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{teacherId}/notifications',                    [TeacherNotificationController::class, 'index']);
         Route::put('/{teacherId}/notifications/{recipientId}/read', [TeacherNotificationController::class, 'markRead']);
         Route::put('/{teacherId}/notifications/read-all',           [TeacherNotificationController::class, 'markAllRead']);
+
+        // Question Generator — upload PDF → receive a .docx exam file
+        Route::post('/{teacherId}/generate-exam', [TeacherQuestionGeneratorController::class, 'generate']);
     });
 
     /*
