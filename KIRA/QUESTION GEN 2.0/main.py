@@ -444,15 +444,18 @@ async def generate_from_pdf(
     except EnvironmentError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    questions = eng.generate(
-        document_id    = document_id,
-        num_questions  = len(question_list),
-        question_types = question_list,
-        bloom_levels   = bloom_list,
-        difficulty     = difficulty,
-        language       = resolved_lang,
-        topic_hint     = "",
-    )
+    try:
+        questions = eng.generate(
+            document_id    = document_id,
+            num_questions  = len(question_list),
+            question_types = question_list,
+            bloom_levels   = bloom_list,
+            difficulty     = difficulty,
+            language       = resolved_lang,
+            topic_hint     = "",
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
 
     if not questions:
         raise HTTPException(

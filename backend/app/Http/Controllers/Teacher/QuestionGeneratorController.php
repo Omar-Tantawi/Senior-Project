@@ -59,7 +59,7 @@ class QuestionGeneratorController extends Controller
             $body   = $response->json();
             // Never forward 401 from the Python service — it would look like a
             // Sanctum auth failure to the client and log the teacher out.
-            $status = in_array($response->status(), [400, 422, 500]) ? $response->status() : 500;
+            $status = in_array($response->status(), [400, 422, 500, 503]) ? $response->status() : 500;
             return response()->json([
                 'message' => $body['detail'] ?? 'Question generation failed.',
             ], $status);

@@ -70,7 +70,6 @@ class QuestionEngine:
             with urllib.request.urlopen(f"{OLLAMA_URL}/api/tags", timeout=3) as resp:
                 data     = json.loads(resp.read())
                 models   = [m["name"] for m in data.get("models", [])]
-                # Check if our model (with or without tag) is pulled
                 base     = OLLAMA_MODEL.split(":")[0]
                 available = any(base in m for m in models)
                 if not available:
@@ -81,6 +80,28 @@ class QuestionEngine:
         except urllib.error.URLError:
             print("[QuestionEngine] WARNING: Ollama is not running.")
             print("  Start it with:  ollama serve")
+
+    def _assert_model_ready(self):
+        """
+        Raise RuntimeError immediately if Ollama is not running or the model
+        is not pulled. Called at the start of every generate() call so the
+        request fails fast with a clear message instead of hanging for minutes
+        while Ollama silently tries to download the model.
+        """
+        try:
+            with urllib.request.urlopen(f"{OLLAMA_URL}/api/tags", timeout=5) as resp:
+                data   = json.loads(resp.read())
+                models = [m["name"] for m in data.get("models", [])]
+                base   = OLLAMA_MODEL.split(":")[0]
+                if not any(base in m for m in models):
+                    raise RuntimeError(
+                        f"Model '{OLLAMA_MODEL}' is not pulled. "
+                        f"Run: ollama pull {OLLAMA_MODEL}"
+                    )
+        except urllib.error.URLError:
+            raise RuntimeError(
+                "Ollama is not running. Start it with: ollama serve"
+            )
 
     # ── Public method ─────────────────────────────────────────────────────────
 
@@ -98,6 +119,7 @@ class QuestionEngine:
         Generate `num_questions` questions from the stored document.
         Question types and Bloom's levels are cycled if fewer than num_questions.
         """
+        self._assert_model_ready()   # fail fast if model not pulled
         questions = []
 
         for i in range(num_questions):

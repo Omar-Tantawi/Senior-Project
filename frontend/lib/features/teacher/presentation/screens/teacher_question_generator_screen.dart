@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -23,10 +24,10 @@ class _TeacherQuestionGeneratorScreenState
   PlatformFile? _pickedFile;
 
   // ── Form values ──────────────────────────────────────────────────────────────
-  int _mcqCount          = 5;
-  int _trueFalseCount    = 3;
-  int _shortAnswerCount  = 2;
-  int _fillBlankCount    = 3;
+  int _mcqCount          = 3;
+  int _trueFalseCount    = 2;
+  int _shortAnswerCount  = 1;
+  int _fillBlankCount    = 1;
   int _essayCount        = 0;
   String _difficulty     = 'medium';
   String _language       = 'auto';
@@ -82,8 +83,8 @@ class _TeacherQuestionGeneratorScreenState
       final dio = Dio(BaseOptions(
         baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 15),
-        sendTimeout:    const Duration(minutes: 10),
-        receiveTimeout: const Duration(minutes: 10),
+        sendTimeout:    const Duration(minutes: 30),
+        receiveTimeout: const Duration(minutes: 30),
       ));
       dio.interceptors.add(ApiInterceptor()); // attaches Bearer token
 
@@ -134,10 +135,28 @@ class _TeacherQuestionGeneratorScreenState
         _showSnack('Generation failed (status ${response.statusCode}).');
       }
     } on DioException catch (e) {
-      final msg = e.response?.data is Map
-          ? (e.response!.data['message'] ?? 'Generation failed.')
-          : 'Request failed. Make sure the question generator service is running.';
-      _showSnack(msg.toString());
+      String msg;
+      final data = e.response?.data;
+      if (data is List<int> && data.isNotEmpty) {
+        // Error body comes back as bytes when responseType == bytes.
+        try {
+          final json = jsonDecode(utf8.decode(data)) as Map<String, dynamic>;
+          msg = json['message'] ?? json['detail'] ?? 'Generation failed.';
+        } catch (_) {
+          msg = 'Generation failed (status ${e.response?.statusCode}).';
+        }
+      } else if (e.type == DioExceptionType.sendTimeout ||
+                 e.type == DioExceptionType.receiveTimeout ||
+                 e.type == DioExceptionType.connectionTimeout) {
+        msg = 'Request timed out. The model may still be loading — try again in a minute.';
+      } else if (e.type == DioExceptionType.connectionError) {
+        msg = 'Cannot reach the server. Check that Laravel and the Python service are running.';
+      } else {
+        msg = 'Request failed (${e.message}).';
+      }
+      _showSnack(msg);
+    } catch (e) {
+      _showSnack('Unexpected error: $e');
     } finally {
       setState(() {
         _loading    = false;
@@ -191,8 +210,8 @@ class _TeacherQuestionGeneratorScreenState
             // ── Notice ───────────────────────────────────────────────────────
             _InfoBanner(
               icon: Icons.info_outline_rounded,
-              text: 'Generation takes 1–5 minutes. '
-                  'Keep the app open until the file downloads.',
+              text: 'Requires Ollama running with the command-r7b-arabic model pulled. '
+                  'Generation takes 2–10 min depending on question count.',
               color: purple,
             ),
             const SizedBox(height: 16),

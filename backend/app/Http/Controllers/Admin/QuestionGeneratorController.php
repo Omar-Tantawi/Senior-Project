@@ -60,7 +60,7 @@ class QuestionGeneratorController extends Controller
             // Never forward a 401 from the Python service to the browser — the
             // axios interceptor would treat it as a Sanctum auth failure and
             // redirect the user to the login page.
-            $status = in_array($response->status(), [400, 422, 500]) ? $response->status() : 500;
+            $status = in_array($response->status(), [400, 422, 500, 503]) ? $response->status() : 500;
             return response()->json([
                 'message' => $body['detail'] ?? 'Question generation failed.',
             ], $status);
