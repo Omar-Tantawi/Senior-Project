@@ -86,6 +86,7 @@ use App\Http\Controllers\ParentControllers\StripeController;
 use App\Http\Controllers\ParentControllers\TeachersController as ParentTeachersController;
 use App\Http\Controllers\Webhook\StripeWebhookController;
 use App\Http\Controllers\Admin\ClassDistributionController;
+use App\Http\Controllers\Admin\QuestionGeneratorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -174,6 +175,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Class Distribution — AI-powered student distribution across sections
         Route::post('/distribute-classes',                          [ClassDistributionController::class, 'distribute']);
         Route::post('/distribute-classes/{id}/confirm',             [ClassDistributionController::class, 'confirm']);
+
+        // Question Generator — upload PDF → get back a .docx exam file
+        Route::post('/generate-exam',                               [QuestionGeneratorController::class, 'generate']);
 
         // Assessments & Marks
         Route::get('/assessments',                    [AssessmentController::class, 'index']);

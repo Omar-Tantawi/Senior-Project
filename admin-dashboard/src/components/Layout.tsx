@@ -41,6 +41,7 @@ import {
   SettingOutlined,
   SafetyOutlined,
   BellOutlined,
+  ExperimentOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -73,6 +74,7 @@ const menuItems: MenuItem[] = [
       { key: '/school-years', icon: <CalendarOutlined />, label: 'School Years' },
       { key: '/classes', icon: <ApartmentOutlined />, label: 'Classes & Sections' },
       { key: '/class-distribution', icon: <TeamOutlined />, label: 'Class Distribution' },
+      { key: '/question-generator', icon: <ExperimentOutlined />, label: 'Question Generator' },
       { key: '/subjects', icon: <FileTextOutlined />, label: 'Subjects' },
       { key: '/schedules', icon: <ScheduleOutlined />, label: 'Schedules' },
       { key: '/assessments', icon: <FileTextOutlined />, label: 'Assessments' },
