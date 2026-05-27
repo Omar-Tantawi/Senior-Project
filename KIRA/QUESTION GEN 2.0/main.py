@@ -14,6 +14,8 @@ Requires Ollama running locally:
     ollama pull command-r7b-arabic
 """
 
+from __future__ import annotations
+
 import os
 import re
 import uuid

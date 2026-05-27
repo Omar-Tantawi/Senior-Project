@@ -8,6 +8,8 @@ Make sure Ollama is running before starting this service:
     ollama pull command-r7b-arabic
 """
 
+from __future__ import annotations
+
 import json
 import re
 import os

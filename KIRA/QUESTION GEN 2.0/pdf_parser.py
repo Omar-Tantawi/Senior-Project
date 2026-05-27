@@ -10,6 +10,8 @@ Arabic PDFs often have issues:
 We handle all of this here.
 """
 
+from __future__ import annotations
+
 import re
 import numpy as np
 import fitz   # PyMuPDF
