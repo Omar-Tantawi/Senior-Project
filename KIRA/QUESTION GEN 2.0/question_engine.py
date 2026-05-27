@@ -20,7 +20,9 @@ from embedder import Embedder
 from prompts  import build_prompt
 
 OLLAMA_URL   = os.getenv("OLLAMA_URL",   "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "command-r7b-arabic")
+# Use the optimised SmartSchool model built from the Modelfile.
+# To create it:  ollama create smartschool -f Modelfile
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "smartschool")
 
 # ── Type normaliser ───────────────────────────────────────────────────────────
 
@@ -173,8 +175,12 @@ class QuestionEngine:
             ],
             "stream": False,
             "options": {
-                "temperature": 0.7,
-                "num_predict": 1024,
+                # Match the Modelfile: smaller context + tighter token budget
+                # = significantly faster generation per question.
+                "temperature":    0.65,
+                "num_predict":    600,
+                "num_ctx":        2048,
+                "repeat_penalty": 1.1,
             },
         }).encode("utf-8")
 
