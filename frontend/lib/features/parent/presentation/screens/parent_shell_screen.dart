@@ -5,12 +5,12 @@ import 'package:first_try/features/auth/current_user.dart';
 import 'package:first_try/features/parent/data/repos/parent_repo.dart';
 import 'package:first_try/features/parent/presentation/cubit/billing_cubit.dart';
 import 'package:first_try/features/parent/presentation/cubit/complaints_cubit.dart';
-import 'package:first_try/features/parent/presentation/cubit/messages_cubit.dart';
+import 'package:first_try/features/parent/presentation/cubit/parent_conversations_cubit.dart';
 import 'package:first_try/features/parent/presentation/cubit/parent_cubit.dart';
 import 'package:first_try/features/parent/presentation/cubit/parent_state.dart';
 import 'package:first_try/features/parent/presentation/screens/parent_academics_screen.dart';
 import 'package:first_try/features/parent/presentation/screens/parent_home_screen.dart';
-import 'package:first_try/features/parent/presentation/screens/parent_messages_screen.dart';
+import 'package:first_try/features/parent/presentation/screens/parent_conversations_screen.dart';
 import 'package:first_try/features/parent/presentation/screens/parent_notifications_screen.dart';
 import 'package:first_try/features/parent/presentation/screens/parent_bus_screen.dart';
 import 'package:first_try/features/parent/presentation/screens/parent_profile_screen.dart';
@@ -30,7 +30,7 @@ class _ParentShellScreenState extends State<ParentShellScreen> {
   late final ParentCubit _cubit;
   late final BillingCubit _billingCubit;
   late final ComplaintsCubit _complaintsCubit;
-  late final MessagesCubit _messagesCubit;
+  late final ParentConversationsCubit _conversationsCubit;
 
   @override
   void initState() {
@@ -40,7 +40,7 @@ class _ParentShellScreenState extends State<ParentShellScreen> {
     _cubit = ParentCubit(repo: _repo)..load();
     _billingCubit = BillingCubit(repo: _repo);
     _complaintsCubit = ComplaintsCubit(repo: _repo);
-    _messagesCubit = MessagesCubit(repo: _repo);
+    _conversationsCubit = ParentConversationsCubit(repo: _repo);
   }
 
   @override
@@ -48,7 +48,7 @@ class _ParentShellScreenState extends State<ParentShellScreen> {
     _cubit.close();
     _billingCubit.close();
     _complaintsCubit.close();
-    _messagesCubit.close();
+    _conversationsCubit.close();
     super.dispose();
   }
 
@@ -59,7 +59,7 @@ class _ParentShellScreenState extends State<ParentShellScreen> {
         BlocProvider.value(value: _cubit),
         BlocProvider.value(value: _billingCubit),
         BlocProvider.value(value: _complaintsCubit),
-        BlocProvider.value(value: _messagesCubit),
+        BlocProvider.value(value: _conversationsCubit),
       ],
       child: BlocBuilder<ParentCubit, ParentState>(
         builder: (context, state) {
@@ -70,7 +70,7 @@ class _ParentShellScreenState extends State<ParentShellScreen> {
               children: const [
                 ParentHomeScreen(),
                 ParentAcademicsScreen(),
-                ParentMessagesScreen(),
+                ParentConversationsScreen(),
                 ParentNotificationsScreen(),
                 ParentBusScreen(),
                 ParentProfileScreen(),

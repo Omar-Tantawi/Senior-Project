@@ -88,6 +88,8 @@ use App\Http\Controllers\Webhook\StripeWebhookController;
 use App\Http\Controllers\Admin\ClassDistributionController;
 use App\Http\Controllers\Admin\QuestionGeneratorController;
 use App\Http\Controllers\Teacher\QuestionGeneratorController as TeacherQuestionGeneratorController;
+use App\Http\Controllers\Teacher\ConversationController as TeacherConversationController;
+use App\Http\Controllers\ParentControllers\ConversationController as ParentConversationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -471,6 +473,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Question Generator — upload PDF → receive a .docx exam file
         Route::post('/{teacherId}/generate-exam', [TeacherQuestionGeneratorController::class, 'generate']);
+
+        // Conversations (WhatsApp-style chat with parents)
+        Route::get('/{teacherId}/conversations',                           [TeacherConversationController::class, 'index']);
+        Route::post('/{teacherId}/conversations',                          [TeacherConversationController::class, 'start']);
+        Route::get('/{teacherId}/conversations/{convId}/messages',         [TeacherConversationController::class, 'messages']);
+        Route::post('/{teacherId}/conversations/{convId}/messages',        [TeacherConversationController::class, 'reply']);
+        Route::put('/{teacherId}/conversations/{convId}/read',             [TeacherConversationController::class, 'markRead']);
     });
 
     /*
@@ -552,12 +561,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{parentId}/notes',                    [SchoolNoteController::class, 'index']);
         Route::put('/{parentId}/notes/{recipientId}/read', [SchoolNoteController::class, 'markRead']);
 
-        // Messages (to/from teachers)
+        // Teachers list (for compose pickers)
         Route::get('/{parentId}/teachers',                              [ParentTeachersController::class, 'index']);
         Route::get('/{parentId}/children/{childId}/teachers',          [ParentTeachersController::class, 'forChild']);
+
+        // Legacy flat messages (kept for backward compatibility)
         Route::get('/{parentId}/messages',      [ParentMessageController::class, 'index']);
         Route::post('/{parentId}/messages',     [ParentMessageController::class, 'send']);
         Route::get('/{parentId}/messages/{id}', [ParentMessageController::class, 'show']);
+
+        // Conversations (WhatsApp-style chat with teachers)
+        Route::get('/{parentId}/conversations',                          [ParentConversationController::class, 'index']);
+        Route::post('/{parentId}/conversations',                         [ParentConversationController::class, 'start']);
+        Route::get('/{parentId}/conversations/{convId}/messages',        [ParentConversationController::class, 'messages']);
+        Route::post('/{parentId}/conversations/{convId}/messages',       [ParentConversationController::class, 'reply']);
+        Route::put('/{parentId}/conversations/{convId}/read',            [ParentConversationController::class, 'markRead']);
 
         // Complaints
         Route::get('/{parentId}/complaints',      [ComplaintController::class, 'index']);

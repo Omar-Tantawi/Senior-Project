@@ -1,6 +1,7 @@
 import 'package:first_try/core/api/api_consumer.dart';
 import 'package:first_try/core/models/assessment_event_model.dart';
 import 'package:first_try/core/utils/app_url.dart';
+import 'package:first_try/features/chat/data/models/chat_models.dart';
 import 'package:first_try/features/teacher/data/models/teacher_extra_models.dart';
 import 'package:first_try/features/teacher/data/models/teacher_models.dart';
 
@@ -290,6 +291,63 @@ class TeacherRepo {
       },
     );
     return TeacherMessageModel.fromJson(res as Map<String, dynamic>);
+  }
+
+  // ── Conversations (WhatsApp-style) ────────────────────────────────────────
+
+  Future<List<ConversationModel>> getConversations() async {
+    final res = await api.getApi(AppUrl.teacherConversations(teacherId));
+    return _toList(res)
+        .map((c) => ConversationModel.fromJson(c as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Returns messages in the conversation, oldest-first.
+  /// Pass [afterId] to only fetch messages newer than that id (polling).
+  Future<List<ChatMessageModel>> getConversationMessages(
+    int convId, {
+    int? afterId,
+  }) async {
+    final res = await api.getApi(
+      AppUrl.teacherConversationMessages(teacherId, convId),
+      queryParameters: {
+        if (afterId != null) 'after_id': afterId,
+        'per_page': 100,
+      },
+    );
+    final map = res as Map<String, dynamic>;
+    return (map['data'] as List<dynamic>? ?? [])
+        .map((m) => ChatMessageModel.fromJson(m as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Start a new conversation (or reopen existing) with a parent.
+  /// [parentUserId] is the User.id of the parent.
+  /// Returns `{ conversation_id, message }`.
+  Future<Map<String, dynamic>> startConversation({
+    required int parentUserId,
+    required String body,
+  }) async {
+    final res = await api.post(
+      AppUrl.teacherConversations(teacherId),
+      data: {'parent_user_id': parentUserId, 'body': body},
+    );
+    return res as Map<String, dynamic>;
+  }
+
+  Future<ChatMessageModel> sendConversationReply(
+    int convId,
+    String body,
+  ) async {
+    final res = await api.post(
+      AppUrl.teacherConversationMessages(teacherId, convId),
+      data: {'body': body},
+    );
+    return ChatMessageModel.fromJson(res as Map<String, dynamic>);
+  }
+
+  Future<void> markConversationRead(int convId) async {
+    await api.put(AppUrl.teacherConversationRead(teacherId, convId));
   }
 
   // ── Performance report ─────────────────────────────────────────────────────
