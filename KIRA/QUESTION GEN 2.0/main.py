@@ -21,7 +21,7 @@ import re
 import uuid
 from dotenv import load_dotenv
 load_dotenv()   # loads .env file if present
-from typing import Literal
+from typing import Dict, List, Literal, Optional
 from fastapi import FastAPI, HTTPException, Request, Depends, UploadFile, File, Form
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
@@ -82,19 +82,19 @@ class GenerateRequest(BaseModel):
 
     # ── Option A: specific count per type (recommended) ──────────────────────
     # e.g. {"mcq": 5, "short_answer": 3, "true_false": 2}
-    question_counts: dict[QuestionType, int] | None = Field(
+    question_counts: Optional[Dict[QuestionType, int]] = Field(
         default=None,
         description="Exact count per question type. e.g. {\"mcq\": 5, \"short_answer\": 3}"
     )
 
     # ── Option B: legacy — total count + cycling types ────────────────────────
     num_questions:   int        = Field(5, ge=1, le=50)
-    question_types:  list[QuestionType] = Field(
+    question_types:  List[QuestionType] = Field(
         default=["mcq"],
         description="Used only when question_counts is not provided. Cycled evenly."
     )
 
-    bloom_levels:    list[BloomLevel] = Field(
+    bloom_levels:    List[BloomLevel] = Field(
         default=["remember", "understand"],
         description="Bloom's taxonomy levels. Cycled across all questions."
     )
@@ -125,7 +125,7 @@ class GenerateRequest(BaseModel):
 
 
 class ExportRequest(BaseModel):
-    questions:       list[dict]
+    questions:       List[dict]
     title:           str      = Field("Exam Questions", description="Document title shown at the top of the Word file.")
     document_id:     str      = Field("", description="Optional — used in the filename only.")
     difficulty:      str      = Field("", description="Difficulty label shown in the subtitle.")
@@ -143,8 +143,8 @@ def health():
 @app.post("/documents/upload", dependencies=[Depends(verify_key)])
 async def upload_document(
     file:       UploadFile = File(...),
-    page_start: int | None = None,
-    page_end:   int | None = None,
+    page_start: Optional[int] = None,
+    page_end:   Optional[int] = None,
 ):
     """
     Upload a PDF file. Returns document_id to use in /questions/generate.
@@ -325,8 +325,8 @@ def export_questions_docx(body: ExportRequest):
 @app.post("/questions/from-pdf", dependencies=[Depends(verify_key)])
 async def generate_from_pdf(
     file:               UploadFile = File(..., description="The PDF file"),
-    page_start:         int  | None = Form(None, description="First page (1-based, inclusive)"),
-    page_end:           int  | None = Form(None, description="Last page (1-based, inclusive)"),
+    page_start:         Optional[int] = Form(None, description="First page (1-based, inclusive)"),
+    page_end:           Optional[int] = Form(None, description="Last page (1-based, inclusive)"),
     mcq_count:          int  = Form(5,  description="Number of MCQ questions"),
     true_false_count:   int  = Form(3,  description="Number of True/False questions"),
     short_answer_count: int  = Form(2,  description="Number of Short Answer questions"),
