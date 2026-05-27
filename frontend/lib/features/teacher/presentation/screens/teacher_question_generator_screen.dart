@@ -23,6 +23,10 @@ class _TeacherQuestionGeneratorScreenState
   // ── Picked file ──────────────────────────────────────────────────────────────
   PlatformFile? _pickedFile;
 
+  // ── Page range ───────────────────────────────────────────────────────────────
+  final _pageStartCtrl = TextEditingController();
+  final _pageEndCtrl   = TextEditingController();
+
   // ── Form values ──────────────────────────────────────────────────────────────
   int _mcqCount          = 3;
   int _trueFalseCount    = 2;
@@ -88,11 +92,16 @@ class _TeacherQuestionGeneratorScreenState
       ));
       dio.interceptors.add(ApiInterceptor()); // attaches Bearer token
 
+      final pageStart = int.tryParse(_pageStartCtrl.text.trim());
+      final pageEnd   = int.tryParse(_pageEndCtrl.text.trim());
+
       final formData = FormData.fromMap({
         'pdf':                MultipartFile.fromFileSync(
           _pickedFile!.path!,
           filename: _pickedFile!.name,
         ),
+        if (pageStart != null) 'page_start': pageStart.toString(),
+        if (pageEnd   != null) 'page_end':   pageEnd.toString(),
         'mcq_count':          _mcqCount.toString(),
         'true_false_count':   _trueFalseCount.toString(),
         'short_answer_count': _shortAnswerCount.toString(),
@@ -183,6 +192,13 @@ class _TeacherQuestionGeneratorScreenState
     await OpenFile.open(file.path);
   }
 
+  @override
+  void dispose() {
+    _pageStartCtrl.dispose();
+    _pageEndCtrl.dispose();
+    super.dispose();
+  }
+
   void _showSnack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
@@ -233,12 +249,54 @@ class _TeacherQuestionGeneratorScreenState
                     ),
                   ),
                   if (_pickedFile != null) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
                       '${(_pickedFile!.size / 1024 / 1024).toStringAsFixed(1)} MB',
                       style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
                     ),
                   ],
+                  const SizedBox(height: 14),
+                  const Divider(height: 1),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Page Range  (optional — leave blank to use the whole PDF)',
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _pageStartCtrl,
+                          enabled: !_loading,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'From page',
+                            hintText: '1',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            prefixIcon: Icon(Icons.first_page_rounded, size: 18),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _pageEndCtrl,
+                          enabled: !_loading,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'To page',
+                            hintText: 'Last',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            prefixIcon: Icon(Icons.last_page_rounded, size: 18),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
