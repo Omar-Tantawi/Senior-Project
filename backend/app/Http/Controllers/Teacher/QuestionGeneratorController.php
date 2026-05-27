@@ -10,6 +10,8 @@ class QuestionGeneratorController extends Controller
 {
     public function generate(Request $request, int $teacherId)
     {
+        // AI generation can take 10+ minutes — disable PHP's 60-second hard limit.
+        set_time_limit(0);
         $request->validate([
             'pdf'                => 'required|file|mimes:pdf|max:409600', // 400 MB
             'page_start'         => 'nullable|integer|min:1',

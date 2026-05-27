@@ -214,6 +214,15 @@ class QuestionEngine:
         raw = re.sub(r"\\\(.*?\\\)", lambda m: re.sub(r"\\text\{([^}]+)\}", r"\1", m.group()).replace("\\(","").replace("\\)","").strip(), raw)
         raw = re.sub(r"\$[^$]+\$", "", raw)   # strip $...$
 
+        def _fix_escapes(text: str) -> str:
+            """
+            The Arabic model sometimes outputs \Arabic_char which is an invalid
+            JSON escape sequence (only \n \t \\ \" \/ \b \f \r \uXXXX are legal).
+            Replace any bare backslash not followed by a valid JSON escape char
+            with a double-backslash so json.loads() can parse the string.
+            """
+            return re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', text)
+
         def _try_parse(text: str) -> dict | None:
             try:
                 data = json.loads(text)
@@ -236,7 +245,12 @@ class QuestionEngine:
         # Try to extract the first {...} block from the text
         match = re.search(r'\{.*\}', raw, re.DOTALL)
         if match:
-            result = _try_parse(match.group())
+            block = match.group()
+            result = _try_parse(block)
+            if result:
+                return result
+            # Last resort: fix invalid escape sequences then retry
+            result = _try_parse(_fix_escapes(block))
             if result:
                 return result
 

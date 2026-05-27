@@ -10,6 +10,7 @@ class QuestionGeneratorController extends Controller
 {
     public function generate(Request $request)
     {
+        set_time_limit(0);
         $request->validate([
             'pdf'                => 'required|file|mimes:pdf|max:409600', // 400 MB
             'page_start'         => 'nullable|integer|min:1',
