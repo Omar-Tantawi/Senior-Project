@@ -72,6 +72,7 @@ const menuItems: MenuItem[] = [
     children: [
       { key: '/school-years', icon: <CalendarOutlined />, label: 'School Years' },
       { key: '/classes', icon: <ApartmentOutlined />, label: 'Classes & Sections' },
+      { key: '/class-distribution', icon: <TeamOutlined />, label: 'Class Distribution' },
       { key: '/subjects', icon: <FileTextOutlined />, label: 'Subjects' },
       { key: '/schedules', icon: <ScheduleOutlined />, label: 'Schedules' },
       { key: '/assessments', icon: <FileTextOutlined />, label: 'Assessments' },

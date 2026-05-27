@@ -32,6 +32,7 @@ import Exports from './pages/Exports';
 import ReportCards from './pages/ReportCards';
 import AuditLogs from './pages/AuditLogs';
 import TeacherAvailability from './pages/TeacherAvailability';
+import ClassDistribution from './pages/ClassDistribution';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -77,6 +78,7 @@ function AppRoutes() {
         <Route path="/report-cards" element={<ReportCards />} />
         <Route path="/audit-logs" element={<AuditLogs />} />
         <Route path="/teacher-availability" element={<TeacherAvailability />} />
+        <Route path="/class-distribution" element={<ClassDistribution />} />
       </Route>
     </Routes>
   );

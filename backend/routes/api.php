@@ -85,6 +85,7 @@ use App\Http\Controllers\AssessmentCalendarController;
 use App\Http\Controllers\ParentControllers\StripeController;
 use App\Http\Controllers\ParentControllers\TeachersController as ParentTeachersController;
 use App\Http\Controllers\Webhook\StripeWebhookController;
+use App\Http\Controllers\Admin\ClassDistributionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -169,6 +170,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/enrollments',        [EnrollmentController::class, 'store']);
         Route::put('/enrollments/{id}',    [EnrollmentController::class, 'update']);
         Route::delete('/enrollments/{id}', [EnrollmentController::class, 'destroy']);
+
+        // Class Distribution — AI-powered student distribution across sections
+        Route::post('/distribute-classes',                          [ClassDistributionController::class, 'distribute']);
+        Route::post('/distribute-classes/{id}/confirm',             [ClassDistributionController::class, 'confirm']);
 
         // Assessments & Marks
         Route::get('/assessments',                    [AssessmentController::class, 'index']);

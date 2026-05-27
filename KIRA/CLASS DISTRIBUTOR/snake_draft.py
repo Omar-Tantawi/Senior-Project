@@ -9,6 +9,8 @@ Steps:
   5. Assign using snake (zigzag) order across classes.
 """
 
+from __future__ import annotations
+
 import random
 import numpy as np
 from dataclasses import dataclass
