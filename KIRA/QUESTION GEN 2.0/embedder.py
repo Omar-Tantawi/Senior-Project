@@ -7,6 +7,16 @@ Model: paraphrase-multilingual-MiniLM-L12-v2
   - Fast enough to run on CPU
 """
 
+# Patch: replace the system sqlite3 with pysqlite3-binary (>= 3.35.0)
+# Required because ChromaDB needs sqlite3 >= 3.35.0 and Python 3.9 on
+# Windows ships with an older version.
+try:
+    __import__("pysqlite3")
+    import sys
+    sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
+except ImportError:
+    pass  # already a new enough sqlite3, or pysqlite3-binary not installed
+
 import chromadb
 import uuid
 from sentence_transformers import SentenceTransformer
