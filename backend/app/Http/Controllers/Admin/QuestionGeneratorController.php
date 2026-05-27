@@ -48,7 +48,7 @@ class QuestionGeneratorController extends Controller
         $response = Http::withHeaders([
                 'X-API-Key' => env('AI_API_KEY', 'change-me-shared-secret'),
             ])
-            ->timeout(600)
+            ->timeout(3600)          // AI generation can take 30–60 min on CPU
             ->attach(
                 'file',
                 file_get_contents($pdf->path()),

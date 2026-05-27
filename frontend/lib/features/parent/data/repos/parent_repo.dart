@@ -1,6 +1,7 @@
 import 'package:first_try/core/api/api_consumer.dart';
 import 'package:first_try/core/models/assessment_event_model.dart';
 import 'package:first_try/core/utils/app_url.dart';
+import 'package:first_try/features/chat/data/models/chat_models.dart';
 import 'package:first_try/features/parent/data/models/parent_extra_models.dart';
 import 'package:first_try/features/parent/data/models/parent_models.dart';
 
@@ -195,6 +196,59 @@ class ParentRepo {
       },
     );
     return MessageModel.fromJson(res as Map<String, dynamic>);
+  }
+
+  // ── Conversations (WhatsApp-style) ────────────────────────────────────────
+
+  Future<List<ConversationModel>> getConversations() async {
+    final res = await api.getApi(AppUrl.parentConversations(parentId));
+    return _toList(res)
+        .map((c) => ConversationModel.fromJson(c as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<ChatMessageModel>> getConversationMessages(
+    int convId, {
+    int? afterId,
+  }) async {
+    final res = await api.getApi(
+      AppUrl.parentConversationMessages(parentId, convId),
+      queryParameters: {
+        if (afterId != null) 'after_id': afterId,
+        'per_page': 100,
+      },
+    );
+    final map = res as Map<String, dynamic>;
+    return (map['data'] as List<dynamic>? ?? [])
+        .map((m) => ChatMessageModel.fromJson(m as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// [teacherId] is the Teacher model id (not user_id).
+  Future<Map<String, dynamic>> startConversation({
+    required int teacherId,
+    required String body,
+  }) async {
+    final res = await api.post(
+      AppUrl.parentConversations(parentId),
+      data: {'teacher_id': teacherId, 'body': body},
+    );
+    return res as Map<String, dynamic>;
+  }
+
+  Future<ChatMessageModel> sendConversationReply(
+    int convId,
+    String body,
+  ) async {
+    final res = await api.post(
+      AppUrl.parentConversationMessages(parentId, convId),
+      data: {'body': body},
+    );
+    return ChatMessageModel.fromJson(res as Map<String, dynamic>);
+  }
+
+  Future<void> markConversationRead(int convId) async {
+    await api.put(AppUrl.parentConversationRead(parentId, convId));
   }
 
   // ── Complaints ─────────────────────────────────────────────────────────────

@@ -113,6 +113,12 @@ class AppUrl {
       '$_api/teacher/$id/availability/$slotId';
   // Question Generator — POST multipart {pdf, ...} → binary .docx download
   static String teacherGenerateExam(int id)      => '$_api/teacher/$id/generate-exam';
+  // Conversations (WhatsApp-style chat with parents)
+  static String teacherConversations(int id)     => '$_api/teacher/$id/conversations';
+  static String teacherConversationMessages(int id, int convId) =>
+      '$_api/teacher/$id/conversations/$convId/messages';
+  static String teacherConversationRead(int id, int convId) =>
+      '$_api/teacher/$id/conversations/$convId/read';
 
   // ── Parent ──────────────────────────────────────────────────────────────────
   static String parentProfile(int id)     => '$_api/parent/$id/profile';
@@ -150,6 +156,12 @@ class AppUrl {
   static String parentMessages(int id)    => '$_api/parent/$id/messages';
   static String parentMessage(int id, int messageId) =>
       '$_api/parent/$id/messages/$messageId';
+  // Conversations (WhatsApp-style chat with teachers)
+  static String parentConversations(int id)     => '$_api/parent/$id/conversations';
+  static String parentConversationMessages(int id, int convId) =>
+      '$_api/parent/$id/conversations/$convId/messages';
+  static String parentConversationRead(int id, int convId) =>
+      '$_api/parent/$id/conversations/$convId/read';
   static String parentComplaints(int id)  => '$_api/parent/$id/complaints';
   static String parentComplaint(int id, int complaintId) =>
       '$_api/parent/$id/complaints/$complaintId';

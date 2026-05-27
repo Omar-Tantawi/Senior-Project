@@ -84,8 +84,8 @@ class _TeacherQuestionGeneratorScreenState
       final dio = Dio(BaseOptions(
         baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 15),
-        sendTimeout:    const Duration(minutes: 30),
-        receiveTimeout: const Duration(minutes: 30),
+        sendTimeout:    const Duration(minutes: 60),
+        receiveTimeout: const Duration(minutes: 60),
       ));
       dio.interceptors.add(ApiInterceptor()); // attaches Bearer token
 

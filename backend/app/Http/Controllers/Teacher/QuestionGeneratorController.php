@@ -10,7 +10,7 @@ class QuestionGeneratorController extends Controller
 {
     public function generate(Request $request, int $teacherId)
     {
-        // AI generation can take 10+ minutes — disable PHP's 60-second hard limit.
+        // AI generation can take 30-60 min on CPU — disable PHP's execution limit.
         set_time_limit(0);
         $request->validate([
             'pdf'                => 'required|file|mimes:pdf|max:409600', // 400 MB
@@ -49,7 +49,7 @@ class QuestionGeneratorController extends Controller
         $response = Http::withHeaders([
                 'X-API-Key' => env('AI_API_KEY', 'change-me-shared-secret'),
             ])
-            ->timeout(600)
+            ->timeout(3600)          // AI generation can take 30–60 min on CPU
             ->attach(
                 'file',
                 file_get_contents($pdf->path()),

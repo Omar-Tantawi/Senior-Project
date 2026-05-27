@@ -9,7 +9,7 @@ import 'package:first_try/features/teacher/presentation/cubit/teacher_behavior_c
 import 'package:first_try/features/teacher/presentation/cubit/teacher_classes_cubit.dart';
 import 'package:first_try/features/teacher/presentation/cubit/teacher_dashboard_cubit.dart';
 import 'package:first_try/features/teacher/presentation/cubit/teacher_homework_cubit.dart';
-import 'package:first_try/features/teacher/presentation/cubit/teacher_messages_cubit.dart';
+import 'package:first_try/features/teacher/presentation/cubit/teacher_conversations_cubit.dart';
 import 'package:first_try/features/teacher/presentation/cubit/teacher_notifications_cubit.dart';
 import 'package:first_try/features/teacher/presentation/cubit/teacher_performance_cubit.dart';
 import 'package:first_try/features/teacher/presentation/cubit/teacher_profile_cubit.dart';
@@ -19,7 +19,7 @@ import 'package:first_try/features/teacher/presentation/cubit/teacher_vacation_c
 import 'package:first_try/features/teacher/presentation/screens/teacher_classes_screen.dart';
 import 'package:first_try/features/teacher/presentation/screens/teacher_home_screen.dart';
 import 'package:first_try/features/teacher/presentation/screens/teacher_homework_screen.dart';
-import 'package:first_try/features/teacher/presentation/screens/teacher_messages_screen.dart';
+import 'package:first_try/features/teacher/presentation/screens/teacher_conversations_screen.dart';
 import 'package:first_try/features/teacher/presentation/screens/teacher_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -42,7 +42,7 @@ class _TeacherShellScreenState extends State<TeacherShellScreen> {
   late final TeacherAttendanceCubit _attendanceCubit;
   late final TeacherNotificationsCubit _notificationsCubit;
   late final TeacherProfileCubit _profileCubit;
-  late final TeacherMessagesCubit _messagesCubit;
+  late final TeacherConversationsCubit _conversationsCubit;
   late final TeacherBehaviorCubit _behaviorCubit;
   late final TeacherPerformanceCubit _performanceCubit;
   late final TeacherSalaryCubit _salaryCubit;
@@ -62,7 +62,7 @@ class _TeacherShellScreenState extends State<TeacherShellScreen> {
     _attendanceCubit    = TeacherAttendanceCubit(repo: _repo)..load();
     _notificationsCubit = TeacherNotificationsCubit(repo: _repo)..load();
     _profileCubit       = TeacherProfileCubit(repo: _repo)..load();
-    _messagesCubit      = TeacherMessagesCubit(repo: _repo);
+    _conversationsCubit = TeacherConversationsCubit(repo: _repo);
     _behaviorCubit      = TeacherBehaviorCubit(repo: _repo);
     _performanceCubit   = TeacherPerformanceCubit(repo: _repo);
     _salaryCubit        = TeacherSalaryCubit(repo: _repo);
@@ -79,7 +79,7 @@ class _TeacherShellScreenState extends State<TeacherShellScreen> {
     _attendanceCubit.close();
     _notificationsCubit.close();
     _profileCubit.close();
-    _messagesCubit.close();
+    _conversationsCubit.close();
     _behaviorCubit.close();
     _performanceCubit.close();
     _salaryCubit.close();
@@ -99,7 +99,7 @@ class _TeacherShellScreenState extends State<TeacherShellScreen> {
         BlocProvider.value(value: _attendanceCubit),
         BlocProvider.value(value: _notificationsCubit),
         BlocProvider.value(value: _profileCubit),
-        BlocProvider.value(value: _messagesCubit),
+        BlocProvider.value(value: _conversationsCubit),
         BlocProvider.value(value: _behaviorCubit),
         BlocProvider.value(value: _performanceCubit),
         BlocProvider.value(value: _salaryCubit),
@@ -113,7 +113,7 @@ class _TeacherShellScreenState extends State<TeacherShellScreen> {
             TeacherHomeScreen(),
             TeacherClassesScreen(),
             TeacherHomeworkScreen(),
-            TeacherMessagesScreen(),
+            TeacherConversationsScreen(),
             TeacherProfileScreen(),
           ],
         ),

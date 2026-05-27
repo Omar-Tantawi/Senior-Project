@@ -221,12 +221,9 @@ class QuestionEngine:
         raw = re.sub(r"\$[^$]+\$", "", raw)   # strip $...$
 
         def _fix_escapes(text: str) -> str:
-            """
-            The Arabic model sometimes outputs \Arabic_char which is an invalid
-            JSON escape sequence (only \n \t \\ \" \/ \b \f \r \uXXXX are legal).
-            Replace any bare backslash not followed by a valid JSON escape char
-            with a double-backslash so json.loads() can parse the string.
-            """
+            # Arabic model sometimes outputs \char where char is not a valid
+            # JSON escape (valid ones: " \\ / b f n r t u).
+            # Replace those bare backslashes so json.loads() can parse the text.
             return re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', text)
 
         def _try_parse(text: str) -> dict | None:
