@@ -12,6 +12,7 @@ import cv2
 import onnxruntime as ort
 from pathlib import Path
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -20,7 +21,7 @@ class Face:
     bbox: np.ndarray          # [x1, y1, x2, y2]
     det_score: float          # detection confidence
     landmarks: np.ndarray     # 5-point landmarks (5, 2): left_eye, right_eye, nose, left_mouth, right_mouth
-    embedding: np.ndarray | None = None  # 512-dim ArcFace embedding
+    embedding: Optional[np.ndarray] = None  # 512-dim ArcFace embedding
 
 
 def _distance2bbox(points, distance):
@@ -215,8 +216,8 @@ class FaceDetector:
             if len(pos_inds) == 0:
                 continue
 
-            bboxes = _distance2bbox(anchor_centers[pos_inds], bbox_deltas[pos_inds])
-            kps = _distance2kps(anchor_centers[pos_inds], kps_deltas[pos_inds])
+            bboxes = _distance2bbox(anchor_centers[pos_inds], bbox_deltas[pos_inds] * stride)
+            kps = _distance2kps(anchor_centers[pos_inds], kps_deltas[pos_inds] * stride)
 
             scores_list.append(scores[pos_inds])
             bboxes_list.append(bboxes / scale)
@@ -245,7 +246,7 @@ class FaceDetector:
 
         return faces
 
-    def _extract_embedding(self, img: np.ndarray, face: Face) -> np.ndarray | None:
+    def _extract_embedding(self, img: np.ndarray, face: Face) -> Optional[np.ndarray]:
         """Extract ArcFace embedding for a detected face."""
         if self.rec_session is None:
             return None

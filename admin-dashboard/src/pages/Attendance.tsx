@@ -1,14 +1,19 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Table, Button, Select, Modal, Card, Typography, Row, Col, Space,
-  Tag, Statistic, DatePicker, Descriptions, message,
+  Tag, Statistic, DatePicker, Descriptions, message, Form, InputNumber,
+  Alert, Spin,
 } from 'antd';
-import { EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { EyeOutlined, DeleteOutlined, RobotOutlined, DownloadOutlined } from '@ant-design/icons';
 import api from '../api/axios';
+import axios from 'axios';
 import dayjs, { Dayjs } from 'dayjs';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
+
+// AI server runs locally on the same machine as the camera
+const AI_SERVER_URL = 'http://localhost:5000';
 
 const STATUS_COLORS: Record<string, string> = {
   present: 'green', absent: 'red', late: 'orange', excused: 'blue',
@@ -57,6 +62,12 @@ export default function Attendance() {
   const [editSessionId, setEditSessionId] = useState<number | null>(null);
   const [editLoading, setEditLoading] = useState(false);
 
+  // AI scan modal
+  const [aiScanOpen, setAiScanOpen] = useState(false);
+  const [aiScanLoading, setAiScanLoading] = useState(false);
+  const [aiServerStatus, setAiServerStatus] = useState<'unknown' | 'online' | 'offline'>('unknown');
+  const [aiScanForm] = Form.useForm();
+
   const fetchSections = async () => {
     try {
       const res = await api.get('/admin/sections');
@@ -81,6 +92,61 @@ export default function Attendance() {
   useEffect(() => { fetchSections(); }, []);
   useEffect(() => { fetchSessions(); }, [fetchSessions]);
 
+  const checkAiServerStatus = async () => {
+    try {
+      const res = await axios.get(`${AI_SERVER_URL}/status`, { timeout: 3000 });
+      if (res.data?.status === 'running') {
+        setAiServerStatus('online');
+      } else {
+        setAiServerStatus('offline');
+      }
+    } catch {
+      setAiServerStatus('offline');
+    }
+  };
+
+  const openAiScanModal = () => {
+    setAiScanOpen(true);
+    checkAiServerStatus();
+    aiScanForm.resetFields();
+    aiScanForm.setFieldsValue({ duration_sec: 120, interval_sec: 5 });
+  };
+
+  const handleAiScan = async () => {
+    try {
+      const values = await aiScanForm.validateFields();
+      setAiScanLoading(true);
+
+      const body: Record<string, unknown> = {
+        duration_sec: values.duration_sec,
+        interval_sec: values.interval_sec,
+        section_id: values.section_id,
+      };
+
+      const res = await axios.post(`${AI_SERVER_URL}/scan`, body, {
+        timeout: (values.duration_sec + 30) * 1000,
+      });
+
+      const result = res.data;
+      if (result?.error) {
+        message.error(`AI scan failed: ${result.error}`);
+      } else {
+        const presentCount = result?.attendance?.filter((r: { status: string }) => r.status === 'present').length ?? 0;
+        message.success(`Scan complete — ${presentCount} student(s) marked present`);
+        setAiScanOpen(false);
+        fetchSessions();
+      }
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.code === 'ECONNREFUSED') {
+        message.error('AI server is not running. Start it with: python main.py --server');
+      } else {
+        message.error('AI scan failed. Check that the AI server is running.');
+      }
+    } finally {
+      setAiScanLoading(false);
+    }
+  };
+
   const openDetail = async (sessionId: number) => {
     setDetailLoading(true); setDetailOpen(true);
     try {
@@ -102,13 +168,33 @@ export default function Attendance() {
       await api.put(`/admin/attendance/${editSessionId}/records/${editRecord.attendance_id}`, { status: editStatus });
       message.success('Status updated');
       setEditOpen(false);
-      // Refresh detail if open
       if (detailOpen && detailData) {
         const res = await api.get(`/admin/attendance/${editSessionId}`);
         setDetailData(res.data);
       }
     } catch { message.error('Failed to update'); }
     finally { setEditLoading(false); }
+  };
+
+  const handleDownloadCsv = async (session: Session) => {
+    try {
+      const res = await api.get(`/admin/export/attendance/${session.session_id}/csv`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const sectionLabel = session.section
+        ? `${session.section.schoolClass?.name || session.section.school_class?.name || ''}_${session.section.name}`
+        : 'session';
+      link.setAttribute('download', `attendance_${session.date}_${sectionLabel}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      message.error('Failed to download CSV');
+    }
   };
 
   const handleDelete = (sessionId: number) => {
@@ -140,6 +226,7 @@ export default function Attendance() {
       render: (_: unknown, r: Session) => (
         <Space>
           <Button size="small" icon={<EyeOutlined />} onClick={() => openDetail(r.session_id)}>View</Button>
+          <Button size="small" icon={<DownloadOutlined />} onClick={() => handleDownloadCsv(r)}>CSV</Button>
           <Button size="small" icon={<DeleteOutlined />} danger onClick={() => handleDelete(r.session_id)} />
         </Space>
       ),
@@ -150,6 +237,15 @@ export default function Attendance() {
     <div>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col><Title level={4} style={{ margin: 0 }}>Attendance</Title></Col>
+        <Col>
+          <Button
+            type="primary"
+            icon={<RobotOutlined />}
+            onClick={openAiScanModal}
+          >
+            AI Face Scan
+          </Button>
+        </Col>
       </Row>
 
       <Card style={{ marginBottom: 16 }}>
@@ -172,6 +268,74 @@ export default function Attendance() {
           size="small"
         />
       </Card>
+
+      {/* AI Scan Modal */}
+      <Modal
+        title={<Space><RobotOutlined /> AI Face Recognition Scan</Space>}
+        open={aiScanOpen}
+        onCancel={() => { if (!aiScanLoading) setAiScanOpen(false); }}
+        onOk={handleAiScan}
+        okText={aiScanLoading ? 'Scanning…' : 'Start Scan'}
+        confirmLoading={aiScanLoading}
+        okButtonProps={{ disabled: aiServerStatus === 'offline' }}
+        width={480}
+      >
+        <div style={{ marginBottom: 16 }}>
+          {aiServerStatus === 'unknown' && <Spin size="small" style={{ marginRight: 8 }} />}
+          {aiServerStatus === 'online' && (
+            <Alert message="AI server is online and ready" type="success" showIcon />
+          )}
+          {aiServerStatus === 'offline' && (
+            <Alert
+              message="AI server is offline"
+              description={<>Start it first:<br /><code>python main.py --server --port 5000</code></>}
+              type="error"
+              showIcon
+            />
+          )}
+        </div>
+
+        <Form form={aiScanForm} layout="vertical">
+          <Form.Item
+            label="Section"
+            name="section_id"
+            rules={[{ required: true, message: 'Select a section' }]}
+          >
+            <Select
+              placeholder="Select section"
+              showSearch
+              optionFilterProp="label"
+              options={sections.map((s) => ({
+                value: s.section_id,
+                label: `${s.school_class?.name || ''} — ${s.name}`,
+              }))}
+            />
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="Scan duration (seconds)" name="duration_sec">
+                <InputNumber min={10} max={600} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Capture interval (seconds)" name="interval_sec">
+                <InputNumber min={1} max={30} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+
+        {aiScanLoading && (
+          <Alert
+            message="Scan in progress…"
+            description="The camera is scanning for faces. This window will close automatically when done."
+            type="info"
+            showIcon
+            icon={<Spin size="small" />}
+          />
+        )}
+      </Modal>
 
       {/* Session Detail Modal */}
       <Modal title="Attendance Session" open={detailOpen} onCancel={() => setDetailOpen(false)} footer={null} width={700}>
@@ -205,7 +369,7 @@ export default function Attendance() {
                 {
                   title: '', key: 'edit', width: 60,
                   render: (_: unknown, r: AttendanceRecord) => (
-                    <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(r, detailData.session.session_id)} />
+                    <Button size="small" icon={<EyeOutlined />} onClick={() => openEdit(r, detailData.session.session_id)} />
                   ),
                 },
               ]}

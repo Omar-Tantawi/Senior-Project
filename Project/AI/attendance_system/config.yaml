@@ -8,14 +8,14 @@ camera:
 
 detection:
   det_model: "models/det_10g.onnx"      # RetinaFace detection model
-  rec_model: "models/w600k_r50.onnx"    # ArcFace recognition model
+  rec_model: "models/iresnet50_adaface_fp32.onnx"    # Trained AdaFace model
   det_size: [640, 640]                   # Detection input size
   det_thresh: 0.5                        # Minimum face detection confidence
   max_faces: 60                          # Max faces to detect per frame
 
 recognition:
-  similarity_threshold: 0.4    # Cosine similarity threshold (lower = stricter)
-  unknown_threshold: 0.3       # Below this, face is marked as unknown
+  similarity_threshold: 0.25   # Cosine similarity threshold (lower = stricter)
+  unknown_threshold: 0.15      # Below this, face is marked as unknown
 
 attendance:
   capture_interval_sec: 5      # Seconds between face captures
@@ -34,11 +34,10 @@ storage:
 api:
   base_url: "http://localhost:8000/api"   # Backend REST API base URL
   timeout_sec: 10
+  api_key: "attendance-ai-secret-key-2024"
   endpoints:
-    students: "/students"
-    schedule: "/schedule"
-    attendance: "/attendance"
-    enroll: "/enroll"
+    students: "/ai/attendance/students"
+    attendance: "/ai/attendance"
 
 server:
   port: 5000                   # Port for server mode (backend triggers scans)

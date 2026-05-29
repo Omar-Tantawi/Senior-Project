@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from typing import List
 
 
 # Colors (BGR)
@@ -8,7 +9,7 @@ COLOR_UNKNOWN = (0, 0, 255)      # Red - unknown face
 COLOR_LOW_CONF = (0, 165, 255)   # Orange - low confidence
 
 
-def draw_detections(frame: np.ndarray, faces: list, results: list[dict]) -> np.ndarray:
+def draw_detections(frame: np.ndarray, faces: list, results: List[dict]) -> np.ndarray:
     """Draw bounding boxes and labels on the frame.
 
     Args:

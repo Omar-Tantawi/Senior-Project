@@ -112,6 +112,47 @@ class ExportController extends Controller
     // ──────────────────────────────────────────────
 
     /**
+     * GET /admin/export/attendance/{sessionId}/csv
+     *
+     * Export a single attendance session as CSV.
+     */
+    public function sessionCsv(int $sessionId): StreamedResponse
+    {
+        $session = AttendanceSession::with('section.schoolClass')->findOrFail($sessionId);
+
+        $records = StudentAttendance::where('session_id', $sessionId)
+            ->with('student.user')
+            ->orderBy('student_id')
+            ->get();
+
+        $sectionName = ($session->section->schoolClass->name ?? '') . ' — ' . ($session->section->name ?? '');
+        $filename = 'attendance_' . $session->date->toDateString() . '_' . str_replace([' ', '—', '/'], '_', $sectionName) . '.csv';
+
+        return response()->streamDownload(function () use ($records, $session, $sectionName) {
+            $handle = fopen('php://output', 'w');
+
+            fputcsv($handle, ['Date', $session->date->toDateString()]);
+            fputcsv($handle, ['Section', $sectionName]);
+            fputcsv($handle, ['Present', $records->where('status', 'present')->count()]);
+            fputcsv($handle, ['Absent',  $records->where('status', 'absent')->count()]);
+            fputcsv($handle, ['Late',    $records->where('status', 'late')->count()]);
+            fputcsv($handle, ['Excused', $records->where('status', 'excused')->count()]);
+            fputcsv($handle, []);
+            fputcsv($handle, ['Student ID', 'Student Name', 'Status']);
+
+            foreach ($records as $r) {
+                fputcsv($handle, [
+                    $r->student_id,
+                    $r->student->user->name ?? 'N/A',
+                    $r->status,
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
+    /**
      * GET /admin/export/attendance/csv
      *
      * Export student attendance as CSV.

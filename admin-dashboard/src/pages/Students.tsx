@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Table, Button, Input, Select, Tag, Space, Modal, Form,
-  message, Card, Typography, Row, Col, Descriptions, Badge, DatePicker, InputNumber,
+  message, Card, Typography, Row, Col, Descriptions, Badge, DatePicker, InputNumber, Tooltip,
 } from 'antd';
 import {
   PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, DeleteOutlined,
+  SwapOutlined, StopOutlined,
 } from '@ant-design/icons';
 import api from '../api/axios';
 import dayjs from 'dayjs';
@@ -39,6 +40,9 @@ interface StudentRecord {
   } | null;
 }
 
+interface EnrollmentRecord { enrollment_id: number; section_id: number; student_id: number; status: string }
+interface Section { section_id: number; name: string; school_class?: { name: string } }
+
 const statusColors: Record<string, string> = {
   active: 'green',
   graduated: 'blue',
@@ -68,6 +72,13 @@ export default function Students() {
   const [viewOpen, setViewOpen] = useState(false);
   const [viewStudent, setViewStudent] = useState<StudentRecord | null>(null);
 
+  // Section assignment modal
+  const [sections, setSections] = useState<Section[]>([]);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignStudent, setAssignStudent] = useState<StudentRecord | null>(null);
+  const [assignSectionId, setAssignSectionId] = useState<number | undefined>();
+  const [assignLoading, setAssignLoading] = useState(false);
+
   const fetchStudents = useCallback(async () => {
     setLoading(true);
     try {
@@ -84,6 +95,56 @@ export default function Students() {
   }, [page, search, statusFilter]);
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
+
+  useEffect(() => {
+    api.get('/admin/sections').then(r => setSections(r.data)).catch(() => {});
+  }, []);
+
+  const openAssign = (student: StudentRecord) => {
+    setAssignStudent(student);
+    setAssignSectionId(undefined);
+    setAssignOpen(true);
+  };
+
+  const handleAssign = async () => {
+    if (!assignStudent || !assignSectionId) return;
+    setAssignLoading(true);
+    try {
+      await api.post('/admin/enrollments', { student_id: assignStudent.id, section_id: assignSectionId, status: 'active' });
+      message.success(`${assignStudent.user.name} assigned to section`);
+      setAssignOpen(false);
+      fetchStudents();
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      message.error(axiosErr.response?.data?.message || 'Failed to assign section');
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const handleRemoveSection = (student: StudentRecord) => {
+    const enrollment = student.active_enrollment as unknown as EnrollmentRecord & { enrollment_id: number };
+    if (!enrollment) return;
+    Modal.confirm({
+      title: `Remove ${student.user.name} from their section?`,
+      content: `They will be removed from ${student.active_enrollment!.section.school_class.name} — ${student.active_enrollment!.section.name}.`,
+      okText: 'Remove',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          // Get enrollment_id via the enrollments endpoint
+          const res = await api.get('/admin/enrollments', { params: { student_id: student.id, status: 'active' } });
+          const active = res.data[0];
+          if (!active) { message.error('No active enrollment found'); return; }
+          await api.delete(`/admin/enrollments/${active.enrollment_id}`);
+          message.success('Student removed from section');
+          fetchStudents();
+        } catch {
+          message.error('Failed to remove student from section');
+        }
+      },
+    });
+  };
 
   const handleCreate = async (values: Record<string, unknown>) => {
     setCreateLoading(true);
@@ -203,6 +264,15 @@ export default function Students() {
         <Space size="small">
           <Button size="small" icon={<EyeOutlined />} onClick={() => openView(record.id)} />
           <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+          {record.active_enrollment ? (
+            <Tooltip title={`Remove from ${record.active_enrollment.section.school_class.name} — ${record.active_enrollment.section.name}`}>
+              <Button size="small" icon={<StopOutlined />} danger onClick={() => handleRemoveSection(record)} />
+            </Tooltip>
+          ) : (
+            <Tooltip title="Assign to a section">
+              <Button size="small" icon={<SwapOutlined />} onClick={() => openAssign(record)} />
+            </Tooltip>
+          )}
           <Button size="small" icon={<DeleteOutlined />} danger onClick={() => {
             Modal.confirm({
               title: 'Delete this student?',
@@ -392,6 +462,34 @@ export default function Students() {
             </Button>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Assign Section Modal */}
+      <Modal
+        title={`Assign Section — ${assignStudent?.user.name}`}
+        open={assignOpen}
+        onCancel={() => setAssignOpen(false)}
+        onOk={handleAssign}
+        okText="Assign"
+        confirmLoading={assignLoading}
+        okButtonProps={{ disabled: !assignSectionId }}
+        width={420}
+      >
+        <p style={{ marginBottom: 12, color: '#666' }}>
+          Select a section to enroll this student in. A student can only be in one section at a time.
+        </p>
+        <Select
+          placeholder="Select section"
+          style={{ width: '100%' }}
+          showSearch
+          optionFilterProp="label"
+          value={assignSectionId}
+          onChange={setAssignSectionId}
+          options={sections.map(s => ({
+            value: s.section_id,
+            label: `${s.school_class?.name || ''} — ${s.name}`,
+          }))}
+        />
       </Modal>
 
       {/* View Student Modal */}

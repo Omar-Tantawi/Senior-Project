@@ -1,1 +1,3 @@
 .claude/
+Students-Chatbot/qdrant_storage/
+Students-Chatbot/*.pkl

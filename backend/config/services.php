@@ -42,4 +42,7 @@ return [
         'webhook_key' => env('AI_API_KEY'),          // KIRA → Laravel (fight-alert webhook)
     ],
 
+    // Attendance AI service (face recognition)
+    'ai_api_key' => env('ATTENDANCE_AI_KEY', 'attendance-ai-secret'),
+
 ];

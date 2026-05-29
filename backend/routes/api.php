@@ -79,6 +79,7 @@ use App\Http\Controllers\Admin\AiCameraController;
 use App\Http\Controllers\Admin\CameraController;
 use App\Http\Controllers\Admin\SurveillanceEventController;
 use App\Http\Controllers\Ai\SurveillanceController as AiSurveillanceController;
+use App\Http\Controllers\Ai\AttendanceController as AiAttendanceController;
 use App\Http\Controllers\Webhook\FightAlertWebhookController;
 use App\Http\Controllers\Admin\ReportCardController;
 use App\Http\Controllers\AssessmentCalendarController;
@@ -107,6 +108,16 @@ Route::get('/media/profile-pictures/{userId}/{filename}', function ($userId, $fi
     }
     return response()->file(\Illuminate\Support\Facades\Storage::disk('public')->path($path));
 })->where('filename', '[A-Za-z0-9._-]+');
+
+/*
+|--------------------------------------------------------------------------
+| AI Service Routes (API key, no user session required)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('ai.apikey')->prefix('ai')->group(function () {
+    Route::get('/attendance/students', [AiAttendanceController::class, 'students']);
+    Route::post('/attendance',         [AiAttendanceController::class, 'store']);
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -367,8 +378,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Export — CSV + PDF downloads
         Route::get('/export/marks/csv',       [ExportController::class, 'marksCsv']);
         Route::get('/export/marks/pdf',       [ExportController::class, 'marksPdf']);
-        Route::get('/export/attendance/csv',  [ExportController::class, 'attendanceCsv']);
-        Route::get('/export/attendance/pdf',  [ExportController::class, 'attendancePdf']);
+        Route::get('/export/attendance/csv',          [ExportController::class, 'attendanceCsv']);
+        Route::get('/export/attendance/pdf',          [ExportController::class, 'attendancePdf']);
+        Route::get('/export/attendance/{id}/csv',     [ExportController::class, 'sessionCsv']);
 
         // Cameras — CRUD
         Route::get('/cameras',         [CameraController::class, 'index']);

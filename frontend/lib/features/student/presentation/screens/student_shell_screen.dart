@@ -14,6 +14,7 @@ import 'package:first_try/features/student/presentation/cubit/student_profile_cu
 import 'package:first_try/features/student/presentation/screens/student_academics_screen.dart';
 import 'package:first_try/features/student/presentation/screens/student_bus_screen.dart';
 import 'package:first_try/features/student/presentation/screens/student_home_screen.dart';
+import 'package:first_try/features/student/presentation/screens/student_chatbot_screen.dart';
 import 'package:first_try/features/student/presentation/screens/student_notifications_screen.dart';
 import 'package:first_try/features/student/presentation/screens/student_profile_screen.dart';
 import 'package:flutter/material.dart';
@@ -90,6 +91,7 @@ class _StudentShellScreenState extends State<StudentShellScreen> {
             StudentAcademicsScreen(),
             StudentNotificationsScreen(),
             StudentBusScreen(),
+            StudentChatbotScreen(),
             StudentProfileScreen(),
           ],
         ),
@@ -116,6 +118,11 @@ class _StudentShellScreenState extends State<StudentShellScreen> {
               icon: Icon(Icons.directions_bus_outlined),
               selectedIcon: Icon(Icons.directions_bus_rounded),
               label: 'Bus',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.auto_awesome_outlined),
+              selectedIcon: Icon(Icons.auto_awesome_rounded),
+              label: 'AI Tutor',
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline_rounded),

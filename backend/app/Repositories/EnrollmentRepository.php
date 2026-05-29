@@ -32,4 +32,11 @@ class EnrollmentRepository
             ->where('section_id', $sectionId)
             ->exists();
     }
+
+    public function activeEnrollment(int $studentId): ?Enrollment
+    {
+        return Enrollment::where('student_id', $studentId)
+            ->where('status', 'active')
+            ->first();
+    }
 }
