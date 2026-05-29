@@ -93,12 +93,13 @@ def init_system(config: dict):
         base_url=api_cfg["base_url"],
         timeout=api_cfg["timeout_sec"],
         endpoints=api_cfg["endpoints"],
+        api_key=api_cfg.get("api_key"),
     )
     _csv_handler = CSVHandler(output_dir=store_cfg["csv_output_dir"])
 
 
 def run_scan(duration_sec: int = 120, interval_sec: int = 5,
-             class_id: str = None, show_display: bool = True) -> dict:
+             class_id: str = None, section_id: int = None, show_display: bool = True) -> dict:
     """Run a single attendance scan session.
 
     Args:
@@ -148,6 +149,11 @@ def run_scan(duration_sec: int = 120, interval_sec: int = 5,
         print("[ERROR] Cannot open camera")
         return {"error": "Cannot open camera"}
 
+    # DEBUG: Print actual camera resolution
+    actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    print(f"[Camera] Requested: {cam_cfg['width']}x{cam_cfg['height']}, Actual: {actual_w}x{actual_h}")
+
     start_time = datetime.now()
     end_time = start_time + timedelta(seconds=duration_sec)
     last_capture = datetime.min
@@ -185,12 +191,24 @@ def run_scan(duration_sec: int = 120, interval_sec: int = 5,
                 remaining_sec = int((end_time - now).total_seconds())
                 print(f"  [Scan {scan_count}] Detecting faces... ({remaining_sec}s remaining)")
 
-                last_faces = _detector.detect_faces(frame)
+                all_faces = _detector.detect_faces(frame)
+                # Filter out tiny false detections — face must be at least 40x40 pixels
+                last_faces = []
+                for f in all_faces:
+                    bbox = f.bbox.astype(int)
+                    w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+                    if w >= 40 and h >= 40:
+                        last_faces.append(f)
+                    else:
+                        pass  # Skip tiny false positive
+                if len(all_faces) != len(last_faces):
+                    print(f"    [Filter] Kept {len(last_faces)}/{len(all_faces)} faces (removed {len(all_faces)-len(last_faces)} tiny false detections)")
                 last_results = []
 
                 for face in last_faces:
                     if face.embedding is None:
                         last_results.append({"student_id": None, "student_name": None, "confidence": 0.0})
+                        print(f"    Face (det={face.det_score:.2f}) → NO EMBEDDING")
                         continue
 
                     student_id, student_name, confidence = _recognizer.recognize(face.embedding)
@@ -200,9 +218,15 @@ def run_scan(duration_sec: int = 120, interval_sec: int = 5,
                         "confidence": confidence,
                     })
 
+                    # DEBUG: show every face's best match score
+                    bbox = face.bbox.astype(int)
+                    face_w = bbox[2] - bbox[0]
+                    face_h = bbox[3] - bbox[1]
                     if student_id:
+                        print(f"    Face ({face_w}x{face_h}, det={face.det_score:.2f}) → MATCH: {student_name} (score={confidence:.4f})")
                         attendance.mark_detected(student_id, student_name, confidence)
                     else:
+                        print(f"    Face ({face_w}x{face_h}, det={face.det_score:.2f}) → NO MATCH (best_score={confidence:.4f}, threshold={_recognizer.similarity_threshold})")
                         face_path = save_unknown_face(frame, face, unknown_dir)
 
                 print(f"  [Scan {scan_count}] Found {len(last_faces)} faces | "
@@ -245,6 +269,8 @@ def run_scan(duration_sec: int = 120, interval_sec: int = 5,
     api_report = attendance.get_attendance_for_api(expected_students or None)
     if class_id:
         api_report["class_id"] = class_id
+    if section_id:
+        api_report["section_id"] = section_id
 
     # Debug format (saved to CSV for developer)
     debug_report = attendance.get_debug_report(expected_students or None)
@@ -284,68 +310,58 @@ def run_scan(duration_sec: int = 120, interval_sec: int = 5,
 class ScanHandler(BaseHTTPRequestHandler):
     """HTTP handler for backend-triggered attendance scans."""
 
+    def _send_cors_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
+    def _json_response(self, data, status=200):
+        body = json.dumps(data).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self._send_cors_headers()
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        """Handle CORS preflight requests from the browser."""
+        self.send_response(204)
+        self._send_cors_headers()
+        self.end_headers()
+
     def do_POST(self):
         if self.path == "/scan":
-            # Read request body
             content_length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(content_length)) if content_length > 0 else {}
 
             duration_sec = body.get("duration_sec", 120)
             interval_sec = body.get("interval_sec", 5)
             class_id = body.get("class_id", None)
+            section_id = body.get("section_id", None)
 
-            print(f"\n[SERVER] Scan requested: {duration_sec}s, every {interval_sec}s, class={class_id}")
+            print(f"\n[SERVER] Scan requested: {duration_sec}s, every {interval_sec}s, class={class_id}, section_id={section_id}")
 
-            # Run scan (blocks until complete)
             result = run_scan(
                 duration_sec=duration_sec,
                 interval_sec=interval_sec,
                 class_id=class_id,
+                section_id=section_id,
                 show_display=True,
             )
 
-            # Return result to backend
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(result).encode())
-
-        elif self.path == "/enroll":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(content_length)) if content_length > 0 else {}
-
-            student_id = body.get("student_id")
-            student_name = body.get("student_name")
-
-            if not student_id or not student_name:
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(b'{"error": "student_id and student_name required"}')
-                return
-
-            print(f"\n[SERVER] Enrollment requested for {student_name} ({student_id})")
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"status": "ready", "message": "Run enrollment on the AI machine"}).encode())
+            self._json_response(result)
 
         else:
-            self.send_response(404)
-            self.end_headers()
+            self._json_response({"error": "Not found"}, 404)
 
     def do_GET(self):
         if self.path == "/status":
-            status = {
+            self._json_response({
                 "status": "running",
                 "enrolled_students": _recognizer.get_enrolled_count() if _recognizer else 0,
-            }
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(status).encode())
+            })
         else:
-            self.send_response(404)
-            self.end_headers()
+            self._json_response({"error": "Not found"}, 404)
 
     def log_message(self, format, *args):
         """Suppress default HTTP logs."""

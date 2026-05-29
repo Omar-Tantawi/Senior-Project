@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from pathlib import Path
+from typing import Optional, Tuple, List
 
 
 class FaceRecognizer:
@@ -41,7 +42,7 @@ class FaceRecognizer:
 
         print(f"[Recognizer] Loaded {len(self.database)} enrolled students")
 
-    def enroll_student(self, student_id: str, student_name: str, embeddings: list[np.ndarray]):
+    def enroll_student(self, student_id: str, student_name: str, embeddings: List[np.ndarray]):
         """Save a student's face embeddings to disk."""
         student_dir = self.embeddings_dir / student_id
         student_dir.mkdir(parents=True, exist_ok=True)
@@ -56,7 +57,7 @@ class FaceRecognizer:
         }
         print(f"[Recognizer] Enrolled {student_name} (ID: {student_id}) with {len(embeddings)} photos")
 
-    def recognize(self, embedding: np.ndarray) -> tuple[str | None, str | None, float]:
+    def recognize(self, embedding: np.ndarray) -> Tuple[Optional[str], Optional[str], float]:
         """Match a face embedding against the database.
 
         Returns:

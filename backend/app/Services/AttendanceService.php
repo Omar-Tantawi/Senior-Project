@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class AttendanceService
 {
-    public function record(int $sectionId, string $date, array $records, int $capturedByUserId): array
+    public function record(int $sectionId, string $date, array $records, ?int $capturedByUserId): array
     {
         return DB::transaction(function () use ($sectionId, $date, $records, $capturedByUserId) {
             $session = AttendanceSession::firstOrCreate([

@@ -23,8 +23,18 @@ class EnrollmentController extends Controller
     {
         $data = $request->validated();
 
+        // Prevent duplicate in the same section
         if ($this->repo->existsInSection($data['student_id'], $data['section_id'])) {
             return response()->json(['message' => 'Student is already enrolled in this section.'], 422);
+        }
+
+        // Prevent enrolling in a second section while already active in one
+        $active = $this->repo->activeEnrollment($data['student_id']);
+        if ($active) {
+            $where = $active->section->schoolClass->name . ' — ' . $active->section->name;
+            return response()->json([
+                'message' => "Student is already enrolled in {$where}. Remove them first before assigning a new section.",
+            ], 422);
         }
 
         $enrollment = Enrollment::create([

@@ -1,4 +1,5 @@
 from datetime import datetime, date
+from typing import Optional, Dict
 
 
 class AttendanceManager:
@@ -44,7 +45,7 @@ class AttendanceManager:
                 debug["best_confidence"] = confidence
             self._debug_info[student_id] = debug
 
-    def get_attendance_for_api(self, expected_students: dict[str, str] | None = None) -> dict:
+    def get_attendance_for_api(self, expected_students: Optional[Dict[str, str]] = None) -> dict:
         """Generate clean attendance data for the backend API.
 
         Simple format: each student appears once as present or absent.
@@ -74,7 +75,7 @@ class AttendanceManager:
             "attendance": attendance,
         }
 
-    def get_debug_report(self, expected_students: dict[str, str] | None = None) -> dict:
+    def get_debug_report(self, expected_students: Optional[Dict[str, str]] = None) -> dict:
         """Generate detailed report for CSV/developer debugging."""
         present = []
         for student_id, student_name in self.present_students.items():
