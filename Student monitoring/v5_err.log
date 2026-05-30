@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "C:\Users\abdul\OneDrive\Desktop\Osama\train_behavior.py", line 117, in <module>
+    metrics = validate(best)
+  File "C:\Users\abdul\OneDrive\Desktop\Osama\train_behavior.py", line 101, in validate
+    results = model.val(data=str(data_yaml), split="val", verbose=True)
+  File "C:\Users\abdul\AppData\Roaming\Python\Python314\site-packages\ultralytics\engine\model.py", line 615, in val
+    validator(model=self.model)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\abdul\AppData\Roaming\Python\Python314\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "C:\Users\abdul\AppData\Roaming\Python\Python314\site-packages\ultralytics\engine\validator.py", line 243, in __call__
+    self.update_metrics(preds, batch)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\abdul\AppData\Roaming\Python\Python314\site-packages\ultralytics\models\yolo\detect\val.py", line 196, in update_metrics
+    self.confusion_matrix.process_batch(predn, pbatch, conf=self.args.conf)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\abdul\AppData\Roaming\Python\Python314\site-packages\ultralytics\utils\metrics.py", line 468, in process_batch
+    self.matrix[self.nc, gc] += 1  # FN
+    ~~~~~~~~~~~^^^^^^^^^^^^^
+IndexError: index 3 is out of bounds for axis 1 with size 3

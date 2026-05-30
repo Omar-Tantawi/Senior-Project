@@ -55,12 +55,21 @@ class SurveillanceEventController extends Controller
 
     public function footage(string $filename)
     {
-        $dir      = rtrim(env('KIRA_FOOTAGE_PATH', ''), '/\\');
-        $filepath = $dir . DIRECTORY_SEPARATOR . $filename;
+        // Footage may live in either the fight-detection dir (KIRA) or the
+        // student-attention monitor dir. Search both.
+        $dirs = array_filter([
+            env('KIRA_FOOTAGE_PATH'),
+            env('ATTENTION_FOOTAGE_PATH'),
+        ]);
 
-        abort_unless(file_exists($filepath), 404, 'Footage file not found.');
+        foreach ($dirs as $dir) {
+            $filepath = rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . $filename;
+            if (file_exists($filepath)) {
+                return response()->download($filepath, $filename);
+            }
+        }
 
-        return response()->download($filepath, $filename);
+        abort(404, 'Footage file not found.');
     }
 
     public function destroy(int $id)
