@@ -2,24 +2,27 @@ import 'package:first_try/features/student/data/models/student_models.dart';
 
 class StudentMockData {
   // ── Dashboard ────────────────────────────────────────────────────────────
+  // Names align with the seeded primary student (Karim Al-Rashidi) so that an
+  // accidental fall-through to mock data does not contradict the rest of the
+  // demo (parent's child name, attendance, schedule etc.).
   static const dashboard = StudentDashboardModel(
-    name: 'Omar Khalid',
-    todayClassesCount: 5,
+    name: 'Karim Al-Rashidi',
+    todayClassesCount: 2,
     unreadNotificationsCount: 3,
-    attendancePercent: 91.5,
+    attendancePercent: 90.0,
     upcomingHomeworkCount: 2,
   );
 
   // ── Profile ──────────────────────────────────────────────────────────────
   static const profile = StudentProfileModel(
     id: 1,
-    name: 'Omar Khalid',
-    email: 'omar@school.com',
-    phone: '+963 944 111 222',
-    dob: '2008-03-15',
+    name: 'Karim Al-Rashidi',
+    email: 'karim@school.test',
+    phone: '0503333333',
+    dob: '2010-05-10',
     gender: 'Male',
-    address: '12 Palm Street, Damascus',
-    className: 'Grade 9',
+    address: 'صحنايا - حي الورود، ريف دمشق',
+    className: 'Grade 10',
     section: 'Section A',
     schoolYear: '2025 – 2026',
   );

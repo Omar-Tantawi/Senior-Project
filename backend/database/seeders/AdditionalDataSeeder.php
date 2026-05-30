@@ -376,9 +376,15 @@ class AdditionalDataSeeder extends Seeder
         if ($batch) DB::table('homeworksubmission')->insert($batch);
 
         // ── 12. BUSES + DRIVERS + ROUTES (6 each) ───────
+        //
+        // Index 0 reuses the existing Arabic Route A from DatabaseSeeder
+        // (Sahnaya / Daraya) so we don't get a duplicate "Route A" row.
+        // Karim & Salma keep their existing assignment; new students 002–015
+        // are dispatched to the same route + existing stops, so Khalid's bus
+        // benefits from the road-snapped polyline already stored on route 1.
         $busDef = [
-            ['email' => 'driver@school.test',  'name' => 'Khalid Mansour',     'plate' => 'SBQ-4231', 'route' => 'Route A – North District',
-             'stops' => ['Al-Noor Mosque','Central Market','Al-Wafa Plaza','Olaya Junction','School Main Gate']],
+            ['email' => 'driver@school.test',  'name' => 'Khalid Mansour',     'plate' => 'SBQ-4231', 'route' => 'Route A – صحنايا / داريا',
+             'stops' => ['دوار صحنايا', 'داريا - شارع الجلاء', 'مدرسة الرؤية الجديدة']],
             ['email' => 'driver2@school.test', 'name' => 'Saud Al-Otaibi',     'plate' => 'SBQ-5142', 'route' => 'Route B – South District',
              'stops' => ['Al-Salam Square','City Park','Al-Andalus Roundabout','South Gate Mall','Library Stop','School Main Gate']],
             ['email' => 'driver3@school.test', 'name' => 'Bandar Al-Harbi',    'plate' => 'SBQ-6253', 'route' => 'Route C – East District',

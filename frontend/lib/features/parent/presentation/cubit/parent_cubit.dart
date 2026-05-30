@@ -28,7 +28,16 @@ class ParentCubit extends Cubit<ParentState> {
       if (profile.children.isNotEmpty) {
         await _loadChildData(profile.children.first.id);
       }
-    } catch (_) {
+    } catch (e, st) {
+      // Falling back to mock disguises the failure — log it loudly so we know
+      // the parent app is showing demo data (Khalid / Omar / Lina) instead of
+      // the real authenticated user. Check this in DevTools Console when the
+      // parent screen looks "wrong".
+      // ignore: avoid_print
+      print('[ParentCubit.load] real load FAILED ($e) — falling back to mock '
+          'profile. Sign out + sign in to clear stale auth.');
+      // ignore: avoid_print
+      print(st);
       final loaded = ParentLoaded(
         profile: ParentMockData.parentProfile,
         notifications: ParentMockData.notifications,
@@ -185,11 +194,18 @@ class ParentCubit extends Cubit<ParentState> {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
+  /// Returns the lowercase weekday name for today, snapping to the next
+  /// school day (Sun) if today is Fri or Sat.  Keeps a tab always highlighted
+  /// in the parent academics screen for the Syrian / Arab school week.
   String _todayKey() {
     const keys = [
       'monday', 'tuesday', 'wednesday', 'thursday',
       'friday', 'saturday', 'sunday'
     ];
-    return keys[(DateTime.now().weekday - 1).clamp(0, 6)];
+    const schoolDays = {
+      'sunday', 'monday', 'tuesday', 'wednesday', 'thursday',
+    };
+    final today = keys[(DateTime.now().weekday - 1).clamp(0, 6)];
+    return schoolDays.contains(today) ? today : 'sunday';
   }
 }

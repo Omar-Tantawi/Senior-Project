@@ -227,8 +227,9 @@ class _ScheduleTab extends StatelessWidget {
   final ParentLoaded state;
   const _ScheduleTab({required this.state});
 
-  static const _days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-  static const _labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  // School week is Sun–Thu (Syrian / Arab pattern).  Fri/Sat are weekend.
+  static const _days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'];
+  static const _labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
 
   @override
   Widget build(BuildContext context) {

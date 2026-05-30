@@ -17,6 +17,7 @@ class DashboardCubit extends Cubit<DashboardState> {
     try {
       profile = await repo.getProfile();
     } catch (_) {
+      // Profile fetch failed — fall back to fully-mock dashboard.
       emit(DashboardLoaded(StudentMockData.dashboard));
       return;
     }

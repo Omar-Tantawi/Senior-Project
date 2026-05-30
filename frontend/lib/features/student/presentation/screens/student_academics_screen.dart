@@ -370,10 +370,11 @@ class _Tag extends StatelessWidget {
 class _ScheduleTab extends StatelessWidget {
   const _ScheduleTab();
 
+  // School week is Sun–Thu (Syrian / Arab pattern).  Fri/Sat are weekend.
   static const _days = [
-    'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
+    'sunday', 'monday', 'tuesday', 'wednesday', 'thursday',
   ];
-  static const _labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  static const _labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
 
   @override
   Widget build(BuildContext context) {

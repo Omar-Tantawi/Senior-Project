@@ -58,6 +58,9 @@ class ChildAttendanceController extends Controller
             'absent'         => $absentCount,
             'late'           => $lateCount,
             'excused'        => $excusedCount,
+            // The Flutter client reads `percent`; legacy clients read
+            // `percentage`. Emit both so neither breaks.
+            'percent'        => $percentage,
             'percentage'     => $percentage,
             'records'        => $records->sortByDesc(fn ($r) => $r->session->date)->values()->map(fn ($r) => [
                 'date'   => $r->session->date->toDateString(),
