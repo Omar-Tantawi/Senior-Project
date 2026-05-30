@@ -10,7 +10,7 @@ from models import ContentItem
 from sources._util import detect_language, make_query
 
 API_URL    = "https://commons.wikimedia.org/w/api.php"
-USER_AGENT = "ContentRecommenderBot/1.0 (educational research; abdullah.helwani9@gmail.com)"
+USER_AGENT = "ContentRecommenderBot/1.0 (educational-recommender)"
 
 
 def _api_call(params: dict) -> dict:

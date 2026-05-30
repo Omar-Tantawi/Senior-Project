@@ -378,17 +378,17 @@ export default function Teachers() {
         open={viewOpen}
         onCancel={() => { setViewOpen(false); setViewTeacher(null); }}
         footer={null}
-        width={600}
+        width={800}
       >
         {viewTeacher && (
-          <Descriptions column={2} bordered size="small">
+          <Descriptions column={2} bordered size="small" labelStyle={{ whiteSpace: 'nowrap', width: 130 }}>
             <Descriptions.Item label="Name">{viewTeacher.user.name}</Descriptions.Item>
             <Descriptions.Item label="Email">{viewTeacher.user.email}</Descriptions.Item>
             <Descriptions.Item label="Phone">{viewTeacher.user.phone || '—'}</Descriptions.Item>
             <Descriptions.Item label="Gender">{viewTeacher.gender || '—'}</Descriptions.Item>
-            <Descriptions.Item label="Date of Birth">{viewTeacher.date_of_birth || '—'}</Descriptions.Item>
+            <Descriptions.Item label="Date of Birth">{viewTeacher.date_of_birth ? dayjs(viewTeacher.date_of_birth).format('D MMM YYYY') : '—'}</Descriptions.Item>
             <Descriptions.Item label="Address">{viewTeacher.address || '—'}</Descriptions.Item>
-            <Descriptions.Item label="Hire Date">{viewTeacher.hire_date || '—'}</Descriptions.Item>
+            <Descriptions.Item label="Hire Date">{viewTeacher.hire_date ? dayjs(viewTeacher.hire_date).format('D MMM YYYY') : '—'}</Descriptions.Item>
             <Descriptions.Item label="Status">
               <Tag color={statusColors[viewTeacher.status]}>{viewTeacher.status}</Tag>
             </Descriptions.Item>

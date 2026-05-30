@@ -10,6 +10,7 @@ import 'package:first_try/features/student/presentation/cubit/student_profile_cu
 import 'package:first_try/features/student/presentation/cubit/student_profile_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 
 class StudentProfileScreen extends StatelessWidget {
   const StudentProfileScreen({super.key});
@@ -107,7 +108,7 @@ class _ProfileBody extends StatelessWidget {
             _InfoRow(
                 icon: Icons.cake_rounded,
                 label: 'Date of Birth',
-                value: profile.dob ?? '—'),
+                value: _formatDate(profile.dob)),
             _InfoRow(
                 icon: Icons.wc_rounded,
                 label: 'Gender',
@@ -158,6 +159,17 @@ class _ProfileBody extends StatelessWidget {
         const SizedBox(height: 32),
       ],
     );
+  }
+
+  /// Formats any ISO date string (e.g. "2010-05-10T00:00:00.000000Z" or
+  /// "2010-05-10") into a readable form like "10 May 2010".
+  String _formatDate(String? raw) {
+    if (raw == null) return '—';
+    try {
+      return DateFormat('d MMM yyyy').format(DateTime.parse(raw));
+    } catch (_) {
+      return raw;
+    }
   }
 
   void _confirmLogout(BuildContext context) async {

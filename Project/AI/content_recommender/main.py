@@ -4,14 +4,12 @@ Content Recommender microservice — FastAPI app.
 Run:
     uvicorn main:app --host 0.0.0.0 --port 8005 --reload
 
-Environment variables:
+Environment variables (copy .env.example to .env and fill in):
     AI_API_KEY       Shared secret for X-API-Key header (between this service and Laravel)
+    GOOGLE_API_KEY   Google Cloud key for YouTube Data API v3
     OLLAMA_URL       Ollama base URL (default: http://localhost:11434)
-    OLLAMA_MODEL     Model to use   (default: command-r7b-arabic)
-
-Requires Ollama running locally:
-    ollama serve
-    ollama pull command-r7b-arabic
+    OLLAMA_MODEL     Arabic model to use (default: command-r7b-arabic)
+    EMBED_MODEL      Path to trained edu_ranker_ar model (auto-detected if kept next to this file)
 """
 
 import time
@@ -41,7 +39,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 extractor = IntentExtractor()
 ranker    = Ranker()

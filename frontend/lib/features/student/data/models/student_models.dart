@@ -71,19 +71,22 @@ class StudentProfileModel extends Equatable {
     this.schoolYear,
   });
 
-  factory StudentProfileModel.fromJson(Map<String, dynamic> json) =>
-      StudentProfileModel(
-        id: json['id'] as int,
-        name: json['name'] as String,
-        email: json['email'] as String,
-        phone: json['phone'] as String?,
-        dob: json['dob'] as String?,
-        gender: json['gender'] as String?,
-        address: json['address'] as String?,
-        className: json['class_name'] as String?,
-        section: json['section'] as String?,
-        schoolYear: json['school_year'] as String?,
-      );
+  factory StudentProfileModel.fromJson(Map<String, dynamic> json) {
+    // Backend nests class/section/school_year under 'current_enrollment'.
+    final enrollment = json['current_enrollment'] as Map<String, dynamic>?;
+    return StudentProfileModel(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      email: json['email'] as String,
+      phone: json['phone'] as String?,
+      dob: json['date_of_birth'] as String?,          // backend key is 'date_of_birth'
+      gender: json['gender'] as String?,
+      address: json['address'] as String?,
+      className: enrollment?['class'] as String?,     // nested under current_enrollment
+      section: enrollment?['section'] as String?,     // nested under current_enrollment
+      schoolYear: enrollment?['school_year'] as String?,  // nested under current_enrollment
+    );
+  }
 
   @override
   List<Object?> get props =>
@@ -253,19 +256,37 @@ class HomeworkModel extends Equatable {
 
   bool get isSubmitted => status == 'submitted' || status == 'graded';
 
-  factory HomeworkModel.fromJson(Map<String, dynamic> json) => HomeworkModel(
-        id: json['id'] as int,
-        title: json['title'] as String,
-        subject: json['subject'] as String,
-        dueDate: json['due_date'] as String,
-        teacherName: json['teacher_name'] as String,
-        status: json['status'] as String,
-        description: json['description'] as String?,
-        submittedContent: json['submitted_content'] as String?,
-        submissionNotes: json['submission_notes'] as String?,
-        grade: (json['grade'] as num?)?.toDouble(),
-        gradeFeedback: json['grade_feedback'] as String?,
-      );
+  factory HomeworkModel.fromJson(Map<String, dynamic> json) {
+    // Backend returns subject as a nested object { id, name }; accept either shape.
+    final subjectRaw = json['subject'];
+    final subject = subjectRaw is String
+        ? subjectRaw
+        : (subjectRaw as Map<String, dynamic>?)?['name'] as String? ?? '';
+
+    // Backend returns teacher as nested { user: { name } }; accept flat fallback too.
+    final teacherRaw = json['teacher'] as Map<String, dynamic>?;
+    final teacherName = json['teacher_name'] as String? ??
+        (teacherRaw?['user'] as Map<String, dynamic>?)?['name'] as String? ??
+        '';
+
+    // Backend homework table has no submission-status column; default to 'pending'
+    // so newly-assigned homework appears as actionable to the student.
+    final status = json['status'] as String? ?? 'pending';
+
+    return HomeworkModel(
+      id: json['id'] as int,
+      title: json['title'] as String,
+      subject: subject,
+      dueDate: json['due_date'] as String? ?? '',
+      teacherName: teacherName,
+      status: status,
+      description: json['description'] as String?,
+      submittedContent: json['submitted_content'] as String?,
+      submissionNotes: json['submission_notes'] as String?,
+      grade: (json['grade'] as num?)?.toDouble(),
+      gradeFeedback: json['grade_feedback'] as String?,
+    );
+  }
 
   @override
   List<Object?> get props => [id, title, subject, dueDate, status];

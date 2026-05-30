@@ -4,7 +4,6 @@ import 'package:first_try/core/widgets/shared/animated_shell.dart';
 import 'package:first_try/features/auth/current_user.dart';
 import 'package:first_try/features/student/data/repos/student_repo.dart';
 import 'package:first_try/features/student/presentation/cubit/attendance_cubit.dart';
-import 'package:first_try/features/student/presentation/cubit/bus_cubit.dart';
 import 'package:first_try/features/student/presentation/cubit/dashboard_cubit.dart';
 import 'package:first_try/features/student/presentation/cubit/homework_cubit.dart';
 import 'package:first_try/features/student/presentation/cubit/marks_cubit.dart';
@@ -12,7 +11,6 @@ import 'package:first_try/features/student/presentation/cubit/notifications_cubi
 import 'package:first_try/features/student/presentation/cubit/schedule_cubit.dart';
 import 'package:first_try/features/student/presentation/cubit/student_profile_cubit.dart';
 import 'package:first_try/features/student/presentation/screens/student_academics_screen.dart';
-import 'package:first_try/features/student/presentation/screens/student_bus_screen.dart';
 import 'package:first_try/features/student/presentation/screens/student_home_screen.dart';
 import 'package:first_try/features/student/presentation/screens/student_chatbot_screen.dart';
 import 'package:first_try/features/student/presentation/screens/student_notifications_screen.dart';
@@ -37,7 +35,6 @@ class _StudentShellScreenState extends State<StudentShellScreen> {
   late final HomeworkCubit _homeworkCubit;
   late final AttendanceCubit _attendanceCubit;
   late final NotificationsCubit _notificationsCubit;
-  late final BusCubit _busCubit;
   late final StudentProfileCubit _profileCubit;
 
   @override
@@ -53,7 +50,6 @@ class _StudentShellScreenState extends State<StudentShellScreen> {
     _homeworkCubit      = HomeworkCubit(repo: _repo)..load();
     _attendanceCubit    = AttendanceCubit(repo: _repo)..load();
     _notificationsCubit = NotificationsCubit(repo: _repo)..load();
-    _busCubit           = BusCubit(repo: _repo)..load();
     _profileCubit       = StudentProfileCubit(repo: _repo)..load();
   }
 
@@ -65,7 +61,6 @@ class _StudentShellScreenState extends State<StudentShellScreen> {
     _homeworkCubit.close();
     _attendanceCubit.close();
     _notificationsCubit.close();
-    _busCubit.close();
     _profileCubit.close();
     super.dispose();
   }
@@ -80,7 +75,6 @@ class _StudentShellScreenState extends State<StudentShellScreen> {
         BlocProvider.value(value: _homeworkCubit),
         BlocProvider.value(value: _attendanceCubit),
         BlocProvider.value(value: _notificationsCubit),
-        BlocProvider.value(value: _busCubit),
         BlocProvider.value(value: _profileCubit),
       ],
       child: Scaffold(
@@ -90,7 +84,6 @@ class _StudentShellScreenState extends State<StudentShellScreen> {
             StudentHomeScreen(),
             StudentAcademicsScreen(),
             StudentNotificationsScreen(),
-            StudentBusScreen(),
             StudentChatbotScreen(),
             StudentProfileScreen(),
           ],
@@ -113,11 +106,6 @@ class _StudentShellScreenState extends State<StudentShellScreen> {
               icon: Icon(Icons.notifications_outlined),
               selectedIcon: Icon(Icons.notifications_rounded),
               label: 'Alerts',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.directions_bus_outlined),
-              selectedIcon: Icon(Icons.directions_bus_rounded),
-              label: 'Bus',
             ),
             NavigationDestination(
               icon: Icon(Icons.auto_awesome_outlined),

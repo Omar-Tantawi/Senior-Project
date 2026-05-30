@@ -3,3 +3,8 @@ Students-Chatbot/qdrant_storage/
 Students-Chatbot/*.pkl
 KIRA/QUESTION GEN 3.0/qdrant_storage/
 KIRA/QUESTION GEN 3.0/__pycache__/
+
+# Content recommender — trained model checkpoints (large binary files)
+Project/AI/content_recommender/training/checkpoints/
+Project/AI/content_recommender/**/__pycache__/
+Project/AI/content_recommender/__pycache__/

@@ -498,17 +498,17 @@ export default function Students() {
         open={viewOpen}
         onCancel={() => { setViewOpen(false); setViewStudent(null); }}
         footer={null}
-        width={600}
+        width={800}
       >
         {viewStudent && (
-          <Descriptions column={2} bordered size="small">
+          <Descriptions column={2} bordered size="small" labelStyle={{ whiteSpace: 'nowrap', width: 130 }}>
             <Descriptions.Item label="Name">{viewStudent.user.name}</Descriptions.Item>
             <Descriptions.Item label="Email">{viewStudent.user.email}</Descriptions.Item>
             <Descriptions.Item label="Phone">{viewStudent.user.phone || '—'}</Descriptions.Item>
             <Descriptions.Item label="Gender">{viewStudent.gender || '—'}</Descriptions.Item>
-            <Descriptions.Item label="Date of Birth">{viewStudent.date_of_birth || '—'}</Descriptions.Item>
+            <Descriptions.Item label="Date of Birth">{viewStudent.date_of_birth ? dayjs(viewStudent.date_of_birth).format('D MMM YYYY') : '—'}</Descriptions.Item>
             <Descriptions.Item label="Address">{viewStudent.address || '—'}</Descriptions.Item>
-            <Descriptions.Item label="Enrollment Date">{viewStudent.enrollment_date || '—'}</Descriptions.Item>
+            <Descriptions.Item label="Enrollment Date">{viewStudent.enrollment_date ? dayjs(viewStudent.enrollment_date).format('D MMM YYYY') : '—'}</Descriptions.Item>
             <Descriptions.Item label="Graduation Year">{viewStudent.graduation_year || '—'}</Descriptions.Item>
             <Descriptions.Item label="Status">
               <Tag color={statusColors[viewStudent.status]}>{viewStudent.status}</Tag>
