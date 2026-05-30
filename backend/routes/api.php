@@ -81,6 +81,7 @@ use App\Http\Controllers\Admin\SurveillanceEventController;
 use App\Http\Controllers\Ai\SurveillanceController as AiSurveillanceController;
 use App\Http\Controllers\Ai\AttendanceController as AiAttendanceController;
 use App\Http\Controllers\Webhook\FightAlertWebhookController;
+use App\Http\Controllers\Webhook\AttentionAlertWebhookController;
 use App\Http\Controllers\Admin\ReportCardController;
 use App\Http\Controllers\AssessmentCalendarController;
 use App\Http\Controllers\ParentControllers\StripeController;
@@ -125,7 +126,8 @@ Route::middleware('ai.apikey')->prefix('ai')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle']);
-Route::post('/webhooks/fight-alert', [FightAlertWebhookController::class, 'handle']);
+Route::post('/webhooks/fight-alert',     [FightAlertWebhookController::class,     'handle']);
+Route::post('/webhooks/attention-alert', [AttentionAlertWebhookController::class, 'handle']);
 
 /*
 |--------------------------------------------------------------------------

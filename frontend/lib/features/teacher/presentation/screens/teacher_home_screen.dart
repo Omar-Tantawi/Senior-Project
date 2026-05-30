@@ -2,6 +2,7 @@ import 'package:first_try/core/theme/theme.dart';
 import 'package:first_try/core/widgets/ui/ui.dart';
 import 'package:first_try/features/teacher/data/models/teacher_models.dart';
 import 'package:first_try/features/teacher/presentation/screens/teacher_notifications_screen.dart';
+import 'package:first_try/features/teacher/presentation/screens/teacher_content_recommender_screen.dart';
 import 'package:first_try/features/teacher/presentation/screens/teacher_question_generator_screen.dart';
 import 'package:first_try/features/teacher/presentation/cubit/teacher_dashboard_cubit.dart';
 import 'package:first_try/features/teacher/presentation/cubit/teacher_dashboard_state.dart';
@@ -147,16 +148,32 @@ class TeacherHomeScreen extends StatelessWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: _QuickActionCard(
-                  icon: Icons.auto_awesome_rounded,
-                  title: 'Question Generator',
-                  subtitle: 'Upload a PDF → get a ready-to-print .docx exam',
-                  color: const Color(0xFF6366F1),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const TeacherQuestionGeneratorScreen(),
+                child: Column(
+                  children: [
+                    _QuickActionCard(
+                      icon: Icons.auto_awesome_rounded,
+                      title: 'Question Generator',
+                      subtitle: 'Upload a PDF → get a ready-to-print .docx exam',
+                      color: const Color(0xFF6366F1),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const TeacherQuestionGeneratorScreen(),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 10),
+                    _QuickActionCard(
+                      icon: Icons.travel_explore_rounded,
+                      title: 'Content Recommender',
+                      subtitle: 'Describe your lesson → get videos, PDFs & articles',
+                      color: const Color(0xFF10B981),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const TeacherContentRecommenderScreen(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

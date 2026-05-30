@@ -1,0 +1,19 @@
+Ultralytics 8.4.56  Python-3.14.3 torch-2.12.0.dev20260408+cu128 CUDA:0 (NVIDIA GeForce RTX 5060, 8151MiB)
+YOLO26s summary (fused): 122 layers, 9,465,954 parameters, 0 gradients, 20.5 GFLOPs
+[34m[1mval: [0mFast image access  (ping: 0.00.0 ms, read: 1467.9304.2 MB/s, size: 197.6 KB)
+[K[34m[1mval: [0mScanning C:\ML\sms\test\labels.cache... 143 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 143/143 37.5Mit/s 0.0s
+[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 11% ━─────────── 1/9 18.9s/it 5.7s<2:31[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 22% ━━╸───────── 2/9 1.8s/it 6.3s<12.9s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 33% ━━━━──────── 3/9 1.1it/s 6.7s<5.6s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 44% ━━━━━─────── 4/9 1.5it/s 7.1s<3.3s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 56% ━━━━━━╸───── 5/9 4.0it/s 7.2s<1.0s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 67% ━━━━━━━━──── 6/9 5.6it/s 7.3s<0.5s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 89% ━━━━━━━━━━╸─ 8/9 7.0it/s 7.5s<0.1s[K                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 9/9 1.2it/s 7.6s
+                   all        143       2857      0.714      0.768      0.808      0.441
+        High Attention        143       1096       0.68      0.778      0.794      0.424
+         Low Attention        143       1761      0.749      0.759      0.822      0.458
+Speed: 0.6ms preprocess, 8.3ms inference, 0.0ms loss, 1.5ms postprocess per image
+Results saved to [1mC:\ML\runs\detect\val-10[0m
+--- TEST SET RESULTS ---
+mAP@50     : 0.8080
+mAP@50-95  : 0.4409
+Precision  : 0.7144
+Recall     : 0.7685
+
+Per-class mAP@50:
+  High Attention: 0.7938
+  Low Attention: 0.8221
