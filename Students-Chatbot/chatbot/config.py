@@ -14,6 +14,7 @@ EMBEDDING_DIM = 1024
 LLM_MODEL = "command-r7b-arabic:7b"
 
 SIMILARITY_THRESHOLD = 0.10
+MAX_HISTORY_TURNS = 10   # pairs kept in context (10 messages = 5 back-and-forth)
 TOP_K_DENSE = 10
 TOP_K_BM25 = 10
 TOP_K_FINAL = 5
