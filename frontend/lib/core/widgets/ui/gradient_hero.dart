@@ -10,7 +10,7 @@ class HeroStat {
 
 /// Full-bleed gradient hero block. Designed for the top of home screens —
 /// holds a greeting, subtitle, optional stats strip, and an optional trailing slot.
-class GradientHero extends StatelessWidget {
+class GradientHero extends StatefulWidget {
   final String greeting;
   final String? subtitle;
   final Widget? trailing;
@@ -34,9 +34,16 @@ class GradientHero extends StatelessWidget {
   });
 
   @override
+  State<GradientHero> createState() => _GradientHeroState();
+}
+
+class _GradientHeroState extends State<GradientHero> {
+  bool _showBlob = false;
+
+  @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final gradColors = colors ?? palette.brandGradient;
+    final gradColors = widget.colors ?? palette.brandGradient;
 
     return Container(
       width: double.infinity,
@@ -46,7 +53,7 @@ class GradientHero extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: radius,
+        borderRadius: widget.radius,
         boxShadow: [
           BoxShadow(
             color: gradColors.first.withValues(alpha: 0.28),
@@ -57,23 +64,30 @@ class GradientHero extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Decorative glow blob (top-right)
+          // Decorative glow blob (top-right) — only visible while hovering the trailing slot
           Positioned(
             top: -50,
             right: -40,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.10),
+            child: IgnorePointer(
+              child: AnimatedOpacity(
+                opacity: _showBlob ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                child: Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.10),
+                  ),
+                ),
               ),
             ),
           ),
           SafeArea(
             bottom: false,
             child: Padding(
-              padding: padding,
+              padding: widget.padding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -86,9 +100,9 @@ class GradientHero extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (subtitle != null)
+                            if (widget.subtitle != null)
                               Text(
-                                subtitle!,
+                                widget.subtitle!,
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodySmall
@@ -98,9 +112,9 @@ class GradientHero extends StatelessWidget {
                                       fontWeight: FontWeight.w500,
                                     ),
                               ),
-                            if (subtitle != null) const SizedBox(height: 4),
+                            if (widget.subtitle != null) const SizedBox(height: 4),
                             Text(
-                              greeting,
+                              widget.greeting,
                               style: Theme.of(context)
                                   .textTheme
                                   .headlineMedium
@@ -113,21 +127,25 @@ class GradientHero extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (trailing != null) ...[
+                      if (widget.trailing != null) ...[
                         const SizedBox(width: 16),
-                        trailing!,
+                        MouseRegion(
+                          onEnter: (_) => setState(() => _showBlob = true),
+                          onExit: (_) => setState(() => _showBlob = false),
+                          child: widget.trailing!,
+                        ),
                       ],
                     ],
                   ),
 
                   // ── Stat strip ──────────────────────────────────────────
-                  if (stats != null && stats!.isNotEmpty) ...[
+                  if (widget.stats != null && widget.stats!.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        for (int i = 0; i < stats!.length; i++) ...[
+                        for (int i = 0; i < widget.stats!.length; i++) ...[
                           if (i > 0) const SizedBox(width: 10),
-                          Expanded(child: _StatChip(stat: stats![i])),
+                          Expanded(child: _StatChip(stat: widget.stats![i])),
                         ],
                       ],
                     ),

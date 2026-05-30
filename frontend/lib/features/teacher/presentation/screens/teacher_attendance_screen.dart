@@ -41,28 +41,76 @@ class TeacherAttendanceScreen extends StatelessWidget {
 
           return RefreshIndicator(
             onRefresh: () => context.read<TeacherAttendanceCubit>().load(),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (pending.isNotEmpty) ...[
-                  _SectionHeader(
-                      title: 'Pending',
-                      count: pending.length,
-                      color: const Color(0xFFF59E0B)),
-                  const SizedBox(height: 8),
-                  ...pending.map((s) => _SessionCard(session: s, isPending: true)),
-                  const SizedBox(height: 16),
-                ],
-                if (done.isNotEmpty) ...[
-                  _SectionHeader(
-                      title: 'Submitted',
-                      count: done.length,
-                      color: const Color(0xFF10B981)),
-                  const SizedBox(height: 8),
-                  ...done.map((s) => _SessionCard(session: s, isPending: false)),
-                ],
-              ],
-            ),
+            child: state.sessions.isEmpty
+                ? ListView(
+                    // ListView (not Center) so RefreshIndicator still works
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.7,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.event_busy_rounded,
+                                  size: 48,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No attendance sessions today',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 6),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 32),
+                                child: Text(
+                                  "You're all caught up. Pull down to refresh.",
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      if (pending.isNotEmpty) ...[
+                        _SectionHeader(
+                            title: 'Pending',
+                            count: pending.length,
+                            color: const Color(0xFFF59E0B)),
+                        const SizedBox(height: 8),
+                        ...pending.map(
+                            (s) => _SessionCard(session: s, isPending: true)),
+                        const SizedBox(height: 16),
+                      ],
+                      if (done.isNotEmpty) ...[
+                        _SectionHeader(
+                            title: 'Submitted',
+                            count: done.length,
+                            color: const Color(0xFF10B981)),
+                        const SizedBox(height: 8),
+                        ...done.map(
+                            (s) => _SessionCard(session: s, isPending: false)),
+                      ],
+                    ],
+                  ),
           );
         },
       ),

@@ -5,6 +5,7 @@ import 'package:first_try/core/widgets/ui/ui.dart';
 import 'package:first_try/features/parent/data/models/parent_models.dart';
 import 'package:first_try/features/parent/presentation/cubit/parent_cubit.dart';
 import 'package:first_try/features/parent/presentation/cubit/parent_state.dart';
+import 'package:first_try/features/parent/presentation/screens/parent_bus_map_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -58,10 +59,17 @@ class ParentBusScreen extends StatelessWidget {
                   SliverToBoxAdapter(
                       child: _BusStatusCard(bus: busData)),
                   SliverToBoxAdapter(
+                      child: _BoardingStatusPill(
+                          status: busData.status, childName: childName)),
+                  SliverToBoxAdapter(
+                      child: _BusActivityPill(activity: busData.activity)),
+                  SliverToBoxAdapter(
                       child: _BusInfoSection(
                           bus: busData, childName: childName)),
                   SliverToBoxAdapter(
-                      child: _BusLiveMap(bus: busData)),
+                      child: _BusLiveMap(
+                          bus: busData,
+                          childId: state.selectedChildId)),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 ],
               ],
@@ -184,6 +192,148 @@ class _BusStatusCard extends StatelessWidget {
   }
 }
 
+// ── Boarding status pill ──────────────────────────────────────────────────────
+
+class _BoardingStatusPill extends StatelessWidget {
+  final BusStatus status;
+  final String childName;
+  const _BoardingStatusPill({required this.status, required this.childName});
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, label, color) = _styleFor(status, childName);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: Radii.mdRadius,
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Row(children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w700, color: color),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  (IconData, String, Color) _styleFor(BusStatus s, String name) {
+    switch (s) {
+      case BusStatus.onBus:
+        return (
+          Icons.directions_bus_filled_rounded,
+          '$name is on the bus',
+          const Color(0xFF6366F1),
+        );
+      case BusStatus.droppedOff:
+        return (
+          Icons.school_rounded,
+          '$name was dropped off at school',
+          const Color(0xFF10B981),
+        );
+      case BusStatus.waiting:
+        return (
+          Icons.access_time_rounded,
+          'Waiting for pickup',
+          const Color(0xFFF59E0B),
+        );
+      case BusStatus.noTrip:
+        return (
+          Icons.event_busy_rounded,
+          'No trip scheduled today',
+          const Color(0xFF6B7280),
+        );
+      case BusStatus.unknown:
+        return (
+          Icons.help_outline_rounded,
+          'Status unavailable',
+          const Color(0xFF6B7280),
+        );
+    }
+  }
+}
+
+// ── Bus activity pill (where is the bus / what is it doing) ───────────────────
+
+class _BusActivityPill extends StatelessWidget {
+  final BusActivity activity;
+  const _BusActivityPill({required this.activity});
+
+  @override
+  Widget build(BuildContext context) {
+    if (activity == BusActivity.unknown) {
+      return const SizedBox.shrink();
+    }
+    final (icon, label, color) = _styleFor(activity);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: Radii.mdRadius,
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Row(children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w700, color: color),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  (IconData, String, Color) _styleFor(BusActivity a) {
+    switch (a) {
+      case BusActivity.atHome:
+        return (
+          Icons.home_rounded,
+          'Bus is at the pickup stop',
+          const Color(0xFF10B981),
+        );
+      case BusActivity.headingToSchool:
+        return (
+          Icons.north_east_rounded,
+          'On the way to school',
+          const Color(0xFF6366F1),
+        );
+      case BusActivity.atSchool:
+        return (
+          Icons.school_rounded,
+          'Bus is at the school',
+          const Color(0xFFF59E0B),
+        );
+      case BusActivity.headingHome:
+        return (
+          Icons.south_west_rounded,
+          'On the way home',
+          const Color(0xFF8B5CF6),
+        );
+      case BusActivity.unknown:
+        return (
+          Icons.help_outline_rounded,
+          'Activity unavailable',
+          const Color(0xFF6B7280),
+        );
+    }
+  }
+}
+
 // ── Bus info section ──────────────────────────────────────────────────────────
 
 class _BusInfoSection extends StatelessWidget {
@@ -231,6 +381,16 @@ class _BusInfoSection extends StatelessWidget {
             label: 'Last Updated',
             value: _fmtDate(bus.updatedAt!),
             color: const Color(0xFFF59E0B),
+          ),
+        ],
+        if (bus.hasLocation) ...[
+          const SizedBox(height: 8),
+          _InfoRow(
+            icon: Icons.my_location_rounded,
+            label: 'Bus Coordinates',
+            value:
+                '${bus.latitude!.toStringAsFixed(5)},  ${bus.longitude!.toStringAsFixed(5)}',
+            color: const Color(0xFFEF4444),
           ),
         ],
       ]),
@@ -295,21 +455,43 @@ class _InfoRow extends StatelessWidget {
 /// Wraps the map and drives a 15-second polling timer via [ParentCubit].
 class _BusLiveMap extends StatefulWidget {
   final ParentBusModel bus;
-  const _BusLiveMap({required this.bus});
+  final int childId;
+  const _BusLiveMap({required this.bus, required this.childId});
 
   @override
   State<_BusLiveMap> createState() => _BusLiveMapState();
 }
 
-class _BusLiveMapState extends State<_BusLiveMap> {
+class _BusLiveMapState extends State<_BusLiveMap>
+    with SingleTickerProviderStateMixin {
+  static const _pollEvery = Duration(seconds: 5);
+  static const _tweenDuration = Duration(milliseconds: 4500);
+
   Timer? _timer;
   final _mapController = MapController();
+  late final AnimationController _tween;
+  LatLng? _fromPoint;
+  LatLng? _toPoint;
+
+  LatLng? get _animatedPoint {
+    if (_fromPoint == null || _toPoint == null) return null;
+    final t = Curves.easeInOut.transform(_tween.value);
+    return LatLng(
+      _fromPoint!.latitude + (_toPoint!.latitude - _fromPoint!.latitude) * t,
+      _fromPoint!.longitude + (_toPoint!.longitude - _fromPoint!.longitude) * t,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
-    // Poll every 15 s so the dot updates without a manual pull-to-refresh.
-    _timer = Timer.periodic(const Duration(seconds: 15), (_) {
+    _tween = AnimationController(vsync: this, duration: _tweenDuration)
+      ..addListener(() => setState(() {}));
+    if (widget.bus.hasLocation) {
+      _fromPoint = _toPoint =
+          LatLng(widget.bus.latitude!, widget.bus.longitude!);
+    }
+    _timer = Timer.periodic(_pollEvery, (_) {
       if (mounted) context.read<ParentCubit>().refreshBusLive();
     });
   }
@@ -317,20 +499,24 @@ class _BusLiveMapState extends State<_BusLiveMap> {
   @override
   void didUpdateWidget(_BusLiveMap old) {
     super.didUpdateWidget(old);
-    // Smoothly pan the camera when a new ping arrives.
-    if (widget.bus.hasLocation &&
-        (widget.bus.latitude != old.bus.latitude ||
-            widget.bus.longitude != old.bus.longitude)) {
-      _mapController.move(
-        LatLng(widget.bus.latitude!, widget.bus.longitude!),
-        15,
-      );
+    if (!widget.bus.hasLocation) return;
+    final next = LatLng(widget.bus.latitude!, widget.bus.longitude!);
+    if (_toPoint != null &&
+        next.latitude == _toPoint!.latitude &&
+        next.longitude == _toPoint!.longitude) {
+      return; // no change
     }
+    _fromPoint = _animatedPoint ?? next;
+    _toPoint = next;
+    _tween
+      ..reset()
+      ..forward();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _tween.dispose();
     _mapController.dispose();
     super.dispose();
   }
@@ -395,7 +581,32 @@ class _BusLiveMapState extends State<_BusLiveMap> {
                 height: 260,
                 width: double.infinity,
                 child: widget.bus.hasLocation
-                    ? _MapView(bus: widget.bus, controller: _mapController)
+                    ? Stack(
+                        children: [
+                          _MapView(
+                              bus: widget.bus,
+                              controller: _mapController,
+                              busPoint: _animatedPoint ??
+                                  LatLng(widget.bus.latitude!,
+                                      widget.bus.longitude!)),
+                          // Transparent tap layer — eats map gestures so the
+                          // preview can't be panned/zoomed in place.
+                          Positioned.fill(
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () => _openFullscreen(context),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: _ExpandChip(
+                                onTap: () => _openFullscreen(context)),
+                          ),
+                        ],
+                      )
                     : _NoLocation(cs: cs),
               ),
             ),
@@ -408,6 +619,17 @@ class _BusLiveMapState extends State<_BusLiveMap> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  void _openFullscreen(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: context.read<ParentCubit>(),
+          child: ParentBusMapScreen(childId: widget.childId),
+        ),
       ),
     );
   }
@@ -430,43 +652,130 @@ class _BusLiveMapState extends State<_BusLiveMap> {
 class _MapView extends StatelessWidget {
   final ParentBusModel bus;
   final MapController controller;
-  const _MapView({required this.bus, required this.controller});
+  final LatLng busPoint;
+  const _MapView({
+    required this.bus,
+    required this.controller,
+    required this.busPoint,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final busPoint = LatLng(bus.latitude!, bus.longitude!);
 
     return FlutterMap(
       mapController: controller,
       options: MapOptions(
         initialCenter: busPoint,
         initialZoom: 15,
-        interactionOptions: const InteractionOptions(
-          flags: InteractiveFlag.pinchZoom |
-              InteractiveFlag.drag |
-              InteractiveFlag.doubleTapZoom,
-        ),
+        // Preview is non-interactive — tap opens fullscreen map.
+        interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
       ),
       children: [
-        // OpenStreetMap tiles — free, no API key.
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.school.app',
           maxZoom: 19,
         ),
-
-        // Bus marker
-        MarkerLayer(
-          markers: [
-            Marker(
-              point: busPoint,
-              width: 48,
-              height: 48,
-              child: _BusMarker(),
-            ),
-          ],
-        ),
+        MarkerLayer(markers: _buildMarkers(busPoint)),
       ],
+    );
+  }
+
+  List<Marker> _buildMarkers(LatLng busPoint) {
+    final markers = <Marker>[];
+    final school = bus.schoolStop;
+    for (final s in bus.stops) {
+      if (!s.hasLocation) continue;
+      final isSchool = school != null && s.id == school.id;
+      final isPickup = bus.pickupStopId != null && s.id == bus.pickupStopId;
+      if (isSchool) continue; // school rendered separately below
+      markers.add(Marker(
+        point: LatLng(s.latitude!, s.longitude!),
+        width: 28,
+        height: 28,
+        child: _StopDot(highlight: isPickup),
+      ));
+    }
+    final atSchool = school != null &&
+        school.hasLocation &&
+        (busPoint.latitude - school.latitude!).abs() < 0.0003 &&
+        (busPoint.longitude - school.longitude!).abs() < 0.0003;
+    const lngOffset = 0.00025;
+    final busDrawPoint = atSchool
+        ? LatLng(busPoint.latitude, busPoint.longitude - lngOffset)
+        : busPoint;
+
+    markers.add(Marker(
+      point: busDrawPoint,
+      width: 48,
+      height: 48,
+      child: _BusMarker(),
+    ));
+    if (school != null && school.hasLocation) {
+      markers.add(Marker(
+        point: LatLng(school.latitude!, school.longitude!),
+        width: 42,
+        height: 42,
+        child: const _SchoolMarker(),
+      ));
+    }
+    return markers;
+  }
+}
+
+// ── Stop / school markers ─────────────────────────────────────────────────────
+
+class _StopDot extends StatelessWidget {
+  final bool highlight;
+  const _StopDot({required this.highlight});
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        highlight ? const Color(0xFF10B981) : const Color(0xFF94A3B8);
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: color, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+      ),
+    );
+  }
+}
+
+class _SchoolMarker extends StatelessWidget {
+  const _SchoolMarker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF59E0B),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.45),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: const Icon(Icons.school_rounded, color: Colors.white, size: 20),
     );
   }
 }
@@ -547,6 +856,41 @@ class _BusMarkerState extends State<_BusMarker>
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Expand-to-fullscreen chip ─────────────────────────────────────────────────
+
+class _ExpandChip extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ExpandChip({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.95),
+      borderRadius: Radii.pillRadius,
+      elevation: 3,
+      child: InkWell(
+        borderRadius: Radii.pillRadius,
+        onTap: onTap,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.open_in_full_rounded, size: 14, color: Colors.black87),
+              SizedBox(width: 5),
+              Text('Expand',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -44,14 +44,14 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $student1UserId = DB::table('users')->insertGetId([
-            'name' => 'Ali Mohammed', 'email' => 'ali@school.test',
+            'name' => 'Karim Al-Rashidi', 'email' => 'karim@school.test',
             'phone' => '0503333333', 'password' => $password,
             'role_type' => 'student', 'is_active' => true,
             'created_at' => $now, 'updated_at' => $now,
         ]);
 
         $student2UserId = DB::table('users')->insertGetId([
-            'name' => 'Fatima Khalid', 'email' => 'fatima@school.test',
+            'name' => 'Salma Al-Rashidi', 'email' => 'salma@school.test',
             'phone' => '0503333344', 'password' => $password,
             'role_type' => 'student', 'is_active' => true,
             'created_at' => $now, 'updated_at' => $now,
@@ -85,14 +85,14 @@ class DatabaseSeeder extends Seeder
 
         $student1Id = DB::table('students')->insertGetId([
             'user_id' => $student1UserId, 'date_of_birth' => '2010-05-10',
-            'gender' => 'male', 'address' => '789 Elm St',
+            'gender' => 'male', 'address' => 'صحنايا - حي الورود، ريف دمشق',
             'enrollment_date' => '2024-09-01', 'graduation_year' => 2028,
             'status' => 'active', 'created_at' => $now, 'updated_at' => $now,
         ]);
 
         $student2Id = DB::table('students')->insertGetId([
             'user_id' => $student2UserId, 'date_of_birth' => '2010-08-22',
-            'gender' => 'female', 'address' => '321 Pine Rd',
+            'gender' => 'female', 'address' => 'داريا - شارع الجلاء، ريف دمشق',
             'enrollment_date' => '2024-09-01', 'graduation_year' => 2028,
             'status' => 'active', 'created_at' => $now, 'updated_at' => $now,
         ]);
@@ -420,23 +420,27 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 14d. Route with 3 ordered stops
+        // Route runs: Sahnaya → Daraya → New Vision School
         $routeId = DB::table('route')->insertGetId([
-            'name' => 'Route A – North District',
+            'name' => 'Route A – صحنايا / داريا',
         ], 'route_id');
 
+        // Stop 1: Sahnaya roundabout (~4 km from school)
         $stop1Id = DB::table('routestop')->insertGetId([
-            'route_id' => $routeId, 'name' => 'Al-Noor Mosque',
-            'stoporder' => 1, 'latitude' => 24.7136, 'longitude' => 46.6753,
+            'route_id' => $routeId, 'name' => 'دوار صحنايا',
+            'stoporder' => 1, 'latitude' => 33.4285, 'longitude' => 36.2195,
         ], 'stop_id');
 
+        // Stop 2: Daraya main street (~1 km from school)
         $stop2Id = DB::table('routestop')->insertGetId([
-            'route_id' => $routeId, 'name' => 'Central Market',
-            'stoporder' => 2, 'latitude' => 24.7200, 'longitude' => 46.6820,
+            'route_id' => $routeId, 'name' => 'داريا - شارع الجلاء',
+            'stoporder' => 2, 'latitude' => 33.4583, 'longitude' => 36.2528,
         ], 'stop_id');
 
+        // Stop 3: New Vision School main gate (actual coordinates)
         $stop3Id = DB::table('routestop')->insertGetId([
-            'route_id' => $routeId, 'name' => 'School Main Gate',
-            'stoporder' => 3, 'latitude' => 24.7268, 'longitude' => 46.6911,
+            'route_id' => $routeId, 'name' => 'مدرسة الرؤية الجديدة',
+            'stoporder' => 3, 'latitude' => 33.4647535, 'longitude' => 36.2610687,
         ], 'stop_id');
 
         // 14e. Assign students to the bus / route / stop
@@ -507,12 +511,12 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 14g-ii. Seed a live GPS ping for today's trip so the parent map
-        //         has something to show right away.
+        //         has something to show right away (bus is approaching Stop 2).
         DB::table('trackingping')->insert([
             [
                 'trip_id'    => $tripTodayId,
-                'latitude'   => 24.7200,   // bus is currently at Stop 2 (Central Market)
-                'longitude'  => 46.6820,
+                'latitude'   => 33.4583,   // bus is currently near Stop 2 (داريا - شارع الجلاء)
+                'longitude'  => 36.2528,
                 'capturedat' => Carbon::now()->subMinutes(2),
             ],
         ]);
@@ -550,12 +554,12 @@ class DatabaseSeeder extends Seeder
         $this->command->info('Admin:   admin@school.test');
         $this->command->info('Teacher: sara@school.test    (id: ' . $teacherId . ')');
         $this->command->info('Teacher: omar@school.test    (id: ' . $teacher2Id . ')');
-        $this->command->info('Student: ali@school.test     (id: ' . $student1Id . ')');
-        $this->command->info('Student: fatima@school.test  (id: ' . $student2Id . ')');
+        $this->command->info('Student: karim@school.test   (id: ' . $student1Id . ')');
+        $this->command->info('Student: salma@school.test   (id: ' . $student2Id . ')');
         $this->command->info('Parent:  parent@school.test  (id: ' . $parentId . ')');
         $this->command->info('Driver:  driver@school.test  (id: ' . $driverId . ')');
         $this->command->info('==========================================');
-        $this->command->info('Bus: SBQ-4231  |  Route: Route A – North District');
+        $this->command->info('Bus: SBQ-4231  |  Route: Route A – صحنايا / داريا');
         $this->command->info('Trips: today (scheduled), yesterday (completed), -3d afternoon (completed)');
         $this->command->info('==========================================');
     }

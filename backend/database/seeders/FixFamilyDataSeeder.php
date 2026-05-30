@@ -90,7 +90,7 @@ class FixFamilyDataSeeder extends Seeder
         }
 
         // Student emails in assignment order
-        $studentEmails = ['ali@school.test', 'fatima@school.test'];
+        $studentEmails = ['karim@school.test', 'salma@school.test'];
         for ($i = 2; $i <= 95; $i++) {
             $studentEmails[] = 'student' . str_pad((string) $i, 3, '0', STR_PAD_LEFT) . '@school.test';
         }

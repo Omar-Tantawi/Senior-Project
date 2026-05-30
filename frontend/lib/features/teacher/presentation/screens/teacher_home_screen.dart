@@ -48,29 +48,12 @@ class TeacherHomeScreen extends StatelessWidget {
                       final count = notifState is TeacherNotificationsLoaded
                           ? notifState.unreadCount
                           : 0;
-                      final loaded = dashState is TeacherDashboardLoaded;
                       return GradientHero(
                         greeting:
                             'Good ${_greeting()}${name.isNotEmpty ? ', $name' : ''}',
                         subtitle: DateFormat('EEEE, d MMMM')
                             .format(DateTime.now()),
                         colors: _kHeroGradient,
-                        stats: loaded
-                            ? [
-                                HeroStat(
-                                  value: '${dashState.dashboard.todayClassesCount}',
-                                  label: 'Classes today',
-                                ),
-                                HeroStat(
-                                  value: '${dashState.dashboard.pendingGradingCount}',
-                                  label: 'To grade',
-                                ),
-                                HeroStat(
-                                  value: '$count',
-                                  label: 'Alerts',
-                                ),
-                              ]
-                            : null,
                         trailing: _NotifBell(
                           count: count,
                           onTap: () {
@@ -113,7 +96,8 @@ class TeacherHomeScreen extends StatelessWidget {
                           ? Row(children: [
                               _StatCard(
                                 icon: Icons.class_rounded,
-                                label: 'Classes\ntoday',
+                                label: 'Classes today',
+                                description: 'On your timetable',
                                 value:
                                     '${state.dashboard.todayClassesCount}',
                                 color: const Color(0xFF6366F1),
@@ -121,7 +105,8 @@ class TeacherHomeScreen extends StatelessWidget {
                               const SizedBox(width: 10),
                               _StatCard(
                                 icon: Icons.grading_rounded,
-                                label: 'Pending\ngrading',
+                                label: 'Pending grading',
+                                description: 'Awaiting your review',
                                 value:
                                     '${state.dashboard.pendingGradingCount}',
                                 color: const Color(0xFFF59E0B),
@@ -129,7 +114,8 @@ class TeacherHomeScreen extends StatelessWidget {
                               const SizedBox(width: 10),
                               _StatCard(
                                 icon: Icons.people_rounded,
-                                label: 'Total\nstudents',
+                                label: 'Total students',
+                                description: 'Across all classes',
                                 value: '${state.dashboard.totalStudents}',
                                 color: const Color(0xFF10B981),
                               ),
@@ -351,13 +337,16 @@ class _NotifBell extends StatelessWidget {
 class _StatCard extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String? description;
   final String value;
   final Color color;
-  const _StatCard(
-      {required this.icon,
-      required this.label,
-      required this.value,
-      required this.color});
+  const _StatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    this.description,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -400,9 +389,21 @@ class _StatCard extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant,
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.w600,
                   ),
             ),
+            if (description != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                description!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                      fontSize: 11,
+                      height: 1.3,
+                    ),
+              ),
+            ],
           ],
         ),
       ),

@@ -61,6 +61,8 @@ return new class extends Migration
             $table->unsignedInteger('route_id')->nullable();
             $table->string('name', 100)->nullable();
             $table->integer('stoporder')->nullable();
+            $table->double('latitude')->nullable();
+            $table->double('longitude')->nullable();
         });
 
         Schema::create('driverassignment', function (Blueprint $table) {

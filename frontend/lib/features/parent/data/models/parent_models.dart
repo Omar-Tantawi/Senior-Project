@@ -303,42 +303,93 @@ class ParentScheduleSlotModel extends Equatable {
 // Bus
 // ─────────────────────────────────────────────────────────────────────────────
 
+enum BusStatus { noTrip, waiting, onBus, droppedOff, unknown }
+
+enum BusActivity { atHome, headingToSchool, atSchool, headingHome, unknown }
+
+class RouteStopModel extends Equatable {
+  final int id;
+  final String name;
+  final double? latitude;
+  final double? longitude;
+  final int? sequence;
+
+  const RouteStopModel({
+    required this.id,
+    required this.name,
+    this.latitude,
+    this.longitude,
+    this.sequence,
+  });
+
+  bool get hasLocation => latitude != null && longitude != null;
+
+  factory RouteStopModel.fromJson(Map<String, dynamic> j) => RouteStopModel(
+        id: (j['stop_id'] ?? j['id'] ?? 0) as int,
+        name: (j['name'] ?? '') as String,
+        latitude: (j['latitude'] as num?)?.toDouble(),
+        longitude: (j['longitude'] as num?)?.toDouble(),
+        sequence: (j['sequence'] ?? j['stop_order']) as int?,
+      );
+
+  @override
+  List<Object?> get props => [id, name, latitude, longitude, sequence];
+}
+
 class ParentBusModel extends Equatable {
   final String busPlate;
   final String routeName;
   final String pickupStopName;
+  final int? pickupStopId;
   final double? latitude;
   final double? longitude;
   final String? driverName;
   final String? updatedAt;
+  final BusStatus status;
+  final BusActivity activity;
+  final List<RouteStopModel> stops;
 
   const ParentBusModel({
     required this.busPlate,
     required this.routeName,
     required this.pickupStopName,
+    this.pickupStopId,
     this.latitude,
     this.longitude,
     this.driverName,
     this.updatedAt,
+    this.status = BusStatus.unknown,
+    this.activity = BusActivity.unknown,
+    this.stops = const [],
   });
 
   bool get hasLocation => latitude != null && longitude != null;
 
+  /// The school is conventionally the last stop on the route.
+  RouteStopModel? get schoolStop =>
+      stops.isNotEmpty ? stops.last : null;
+
   factory ParentBusModel.fromJson(Map<String, dynamic> json) {
-    // The liveLocation endpoint returns { trip: {...}, location: {...} }.
+    // The liveLocation endpoint returns
+    //   { trip, location, bus, route, stop, status, last_event }
     // The assignment endpoint returns the raw StudentBusAssignment with
     // nested bus/route/stop.  We normalise both shapes here.
     final trip = json['trip'] as Map<String, dynamic>?;
     final location = json['location'] as Map<String, dynamic>?;
     final bus = json['bus'] as Map<String, dynamic>?;
-    final route = json['route'] as Map<String, dynamic>?;
+    final route = (json['route'] ?? trip?['route']) as Map<String, dynamic>?;
     final stop = json['stop'] as Map<String, dynamic>?;
     final driver = trip?['driver'] as Map<String, dynamic>?;
     final driverUser = driver?['user'] as Map<String, dynamic>?;
 
-    // lat/lng: prefer the dedicated location ping, fall back to top-level.
     final lat = (location?['latitude'] ?? json['latitude'] as num?)?.toDouble();
     final lng = (location?['longitude'] ?? json['longitude'] as num?)?.toDouble();
+
+    final rawStops = (route?['stops'] as List?) ?? const [];
+    final stops = rawStops
+        .map((s) => RouteStopModel.fromJson(s as Map<String, dynamic>))
+        .toList()
+      ..sort((a, b) => (a.sequence ?? 0).compareTo(b.sequence ?? 0));
 
     return ParentBusModel(
       busPlate: (json['bus_plate']
@@ -347,11 +398,13 @@ class ParentBusModel extends Equatable {
               ?? '') as String,
       routeName: (json['route_name']
               ?? route?['name']
-              ?? trip?['route']?['name']
               ?? '') as String,
       pickupStopName: (json['pickup_stop_name']
               ?? stop?['name']
               ?? '') as String,
+      pickupStopId: (json['pickup_stop_id']
+              ?? stop?['stop_id']
+              ?? stop?['id']) as int?,
       latitude: lat,
       longitude: lng,
       driverName: (json['driver_name']
@@ -359,11 +412,45 @@ class ParentBusModel extends Equatable {
               ?? driver?['name']) as String?,
       updatedAt: (location?['capturedat']
               ?? json['updated_at']) as String?,
+      status: _parseStatus(json['status'] as String?),
+      activity: _parseActivity(json['activity'] as String?),
+      stops: stops,
     );
   }
 
+  static BusStatus _parseStatus(String? s) {
+    switch (s) {
+      case 'no_trip':
+        return BusStatus.noTrip;
+      case 'waiting':
+        return BusStatus.waiting;
+      case 'on_bus':
+        return BusStatus.onBus;
+      case 'dropped_off':
+        return BusStatus.droppedOff;
+      default:
+        return BusStatus.unknown;
+    }
+  }
+
+  static BusActivity _parseActivity(String? s) {
+    switch (s) {
+      case 'at_home':
+        return BusActivity.atHome;
+      case 'heading_to_school':
+        return BusActivity.headingToSchool;
+      case 'at_school':
+        return BusActivity.atSchool;
+      case 'heading_home':
+        return BusActivity.headingHome;
+      default:
+        return BusActivity.unknown;
+    }
+  }
+
   @override
-  List<Object?> get props => [busPlate, routeName, pickupStopName, latitude, longitude];
+  List<Object?> get props =>
+      [busPlate, routeName, pickupStopName, latitude, longitude, status, stops];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
