@@ -14,7 +14,9 @@ class BusRoute extends Model
     protected $primaryKey = 'route_id';
     public $timestamps = false;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'polyline'];
+
+    protected $casts = ['polyline' => 'array'];
 
     public function stops()
     {

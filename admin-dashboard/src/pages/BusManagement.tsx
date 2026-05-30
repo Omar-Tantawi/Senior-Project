@@ -17,7 +17,7 @@ interface Driver {
   user?: { name: string; email: string; phone?: string; is_active: boolean };
   currentBus?: Bus;
 }
-interface Stop { stop_id: number; route_id: number; name: string; stoporder: number }
+interface Stop { stop_id: number; route_id: number; name: string; stoporder: number; latitude: number | null; longitude: number | null }
 interface BusRoute { route_id: number; name: string; stops?: Stop[] }
 interface DriverAssignment {
   driverassignment_id: number; driver_id: number; bus_id: number;
@@ -259,7 +259,7 @@ function RoutesTab() {
   };
   const openEditStop = (s: Stop) => {
     setStopRouteId(s.route_id); setEditingStop(s);
-    stopForm.setFieldsValue({ name: s.name, stoporder: s.stoporder });
+    stopForm.setFieldsValue({ name: s.name, stoporder: s.stoporder, latitude: s.latitude, longitude: s.longitude });
     setStopModalOpen(true);
   };
 
@@ -312,8 +312,15 @@ function RoutesTab() {
               </Row>
               <Table size="small" dataSource={r.stops || []} rowKey="stop_id" pagination={false}
                 columns={[
-                  { title: '#', dataIndex: 'stoporder', width: 60 },
+                  { title: '#', dataIndex: 'stoporder', width: 50 },
                   { title: 'Stop Name', dataIndex: 'name' },
+                  {
+                    title: 'Coordinates', key: 'coords', width: 200,
+                    render: (_: unknown, s: Stop) =>
+                      s.latitude != null && s.longitude != null
+                        ? <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{Number(s.latitude).toFixed(5)}, {Number(s.longitude).toFixed(5)}</span>
+                        : <Tag color="warning">No coordinates</Tag>,
+                  },
                   {
                     title: 'Actions', key: 'a', width: 110,
                     render: (_: unknown, s: Stop) => (
@@ -341,14 +348,37 @@ function RoutesTab() {
       </Modal>
 
       <Modal title={editingStop ? 'Edit Stop' : 'Add Stop'} open={stopModalOpen}
-        onCancel={() => setStopModalOpen(false)} footer={null} width={400}>
+        onCancel={() => setStopModalOpen(false)} footer={null} width={440}>
         <Form form={stopForm} layout="vertical" onFinish={onSubmitStop}>
           <Form.Item name="name" label="Stop Name" rules={[{ required: true }]}>
-            <Input placeholder="e.g. Main Street" />
+            <Input placeholder="e.g. دوار صحنايا" />
           </Form.Item>
           <Form.Item name="stoporder" label="Stop Order" rules={[{ required: true }]}>
             <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item
+                name="latitude"
+                label="Latitude"
+                rules={[{ type: 'number', min: -90, max: 90, message: 'Must be between -90 and 90' }]}
+              >
+                <InputNumber placeholder="e.g. 33.4647" precision={6} step={0.0001} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="longitude"
+                label="Longitude"
+                rules={[{ type: 'number', min: -180, max: 180, message: 'Must be between -180 and 180' }]}
+              >
+                <InputNumber placeholder="e.g. 36.2610" precision={6} step={0.0001} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>
+            Tip: open Google Maps → right-click the location → copy the coordinates shown at the top.
+          </div>
           <Button type="primary" htmlType="submit" block>{editingStop ? 'Save' : 'Create'}</Button>
         </Form>
       </Modal>

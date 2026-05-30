@@ -12,7 +12,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('subject_id')->constrained('subjects')->cascadeOnDelete();
             $table->foreignId('teacher_id')->constrained('teachers')->cascadeOnDelete();
-            $table->foreignId('section_id')->constrained('sections')->cascadeOnDelete();
+            $table->unsignedInteger('section_id');
+            $table->foreign('section_id')->references('section_id')->on('section')->cascadeOnDelete();
             $table->string('title');
             $table->text('description')->nullable();
             $table->date('due_date');

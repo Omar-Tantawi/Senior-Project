@@ -13,6 +13,8 @@ class UpdateRouteStopRequest extends FormRequest
         return [
             'name'      => 'sometimes|string|max:100',
             'stoporder' => 'sometimes|integer|min:1',
+            'latitude'  => 'sometimes|nullable|numeric|between:-90,90',
+            'longitude' => 'sometimes|nullable|numeric|between:-180,180',
         ];
     }
 }

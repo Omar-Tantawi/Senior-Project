@@ -5,9 +5,9 @@ namespace App\Http\Controllers\ParentControllers;
 use App\Http\Controllers\Controller;
 use App\Models\StudentBusAssignment;
 use App\Models\StudentGuardian;
-use App\Models\TrackingPing;
 use App\Models\Trip;
 use App\Models\TripStopEvent;
+use App\Services\Transport\PositionProvider;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -55,35 +55,47 @@ class ChildBusController extends Controller
     /**
      * Live location of the child's bus — today's active trip, latest GPS ping.
      */
-    public function liveLocation(int $parentId, int $studentId)
+    public function liveLocation(int $parentId, int $studentId, PositionProvider $provider)
     {
         if ($err = $this->authorizeChild($parentId, $studentId)) {
             return $err;
         }
 
-        $assignment = StudentBusAssignment::where('student_id', $studentId)->first();
+        $assignment = StudentBusAssignment::with(['bus', 'route.stops', 'stop'])
+            ->where('student_id', $studentId)
+            ->first();
         if (! $assignment) {
             return response()->json(['message' => 'No bus assignment found.'], 404);
         }
 
-        $trip = Trip::with(['driver.user', 'route'])
+        // In real/simulation mode we need today's actual Trip row. In demo
+        // mode any trip for this bus/route is fine — the position is fully
+        // synthesised — so we relax the date filter when none exists today.
+        $tripQuery = Trip::with(['driver.user', 'route'])
             ->where('bus_id', $assignment->bus_id)
-            ->where('route_id', $assignment->route_id)
+            ->where('route_id', $assignment->route_id);
+
+        $trip = (clone $tripQuery)
             ->whereDate('date', now()->toDateString())
             ->orderByDesc('trip_id')
             ->first();
 
-        if (! $trip) {
-            return response()->json(['message' => 'No active trip today.'], 404);
+        if (! $trip && ! $provider->requiresRealTrip()) {
+            $trip = $tripQuery->orderByDesc('trip_id')->first();
         }
 
-        $location = TrackingPing::where('trip_id', $trip->trip_id)
-            ->orderByDesc('capturedat')
-            ->first();
+        $snapshot = $provider->positionFor($assignment, $trip);
 
         return response()->json([
-            'trip'     => $trip,
-            'location' => $location,
+            'trip'       => $trip,
+            'location'   => $snapshot->location,
+            'bus'        => $assignment->bus,
+            'route'      => $assignment->route,
+            'stop'       => $assignment->stop,
+            'status'     => $snapshot->status,
+            'activity'   => $snapshot->activity,
+            'last_event' => $snapshot->lastEvent,
+            'mode'       => config('transport.mode', 'demo'),
         ]);
     }
 

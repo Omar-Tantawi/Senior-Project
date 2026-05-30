@@ -203,8 +203,8 @@ class AdditionalDataSeeder extends Seeder
         };
 
         $sIdx = 0;
-        $upsertStudent('ali@school.test',    'Ali Mohammed',  'male',   $sections[10]['A'], 10, 2011, $sIdx++);
-        $upsertStudent('fatima@school.test', 'Fatima Khalid', 'female', $sections[10]['A'], 10, 2011, $sIdx++);
+        $upsertStudent('karim@school.test',  'Karim Al-Rashidi', 'male',   $sections[10]['A'], 10, 2011, $sIdx++);
+        $upsertStudent('salma@school.test',  'Salma Al-Rashidi', 'female', $sections[10]['A'], 10, 2011, $sIdx++);
 
         foreach ([7, 8, 9, 10] as $grade) {
             $birthYear = 2026 - 5 - $grade; // 7→2014, 8→2013, 9→2012, 10→2011

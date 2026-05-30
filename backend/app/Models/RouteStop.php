@@ -10,7 +10,9 @@ class RouteStop extends Model
     protected $primaryKey = 'stop_id';
     public $timestamps = false;
 
-    protected $fillable = ['route_id', 'name', 'stoporder'];
+    protected $fillable = ['route_id', 'name', 'stoporder', 'latitude', 'longitude'];
+
+    protected $casts = ['latitude' => 'float', 'longitude' => 'float'];
 
     public function route()
     {

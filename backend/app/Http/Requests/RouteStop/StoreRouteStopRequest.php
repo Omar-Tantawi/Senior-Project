@@ -14,6 +14,8 @@ class StoreRouteStopRequest extends FormRequest
             'route_id'  => 'required|integer|exists:route,route_id',
             'name'      => 'required|string|max:100',
             'stoporder' => 'required|integer|min:1',
+            'latitude'  => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
         ];
     }
 }
