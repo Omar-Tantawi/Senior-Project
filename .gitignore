@@ -1,3 +1,5 @@
 .claude/
 Students-Chatbot/qdrant_storage/
 Students-Chatbot/*.pkl
+KIRA/QUESTION GEN 3.0/qdrant_storage/
+KIRA/QUESTION GEN 3.0/__pycache__/

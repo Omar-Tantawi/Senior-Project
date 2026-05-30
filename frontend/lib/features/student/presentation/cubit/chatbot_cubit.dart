@@ -12,6 +12,10 @@ class ChatbotCubit extends Cubit<ChatbotState> {
     receiveTimeout: const Duration(minutes: 3),
   ));
 
+  /// Persisted across messages in the same chat session.
+  /// Null until the first successful response (server assigns it).
+  String? _sessionId;
+
   ChatbotCubit() : super(const ChatbotIdle([]));
 
   Future<void> send(String question, {String? grade, String? subject}) async {
@@ -20,11 +24,19 @@ class ChatbotCubit extends Cubit<ChatbotState> {
     emit(ChatbotSending(updatedMessages));
 
     try {
+      // ignore: avoid_print
+      print('[Chatbot] sending — session_id=$_sessionId');
+
       final response = await _dio.post('/chat', data: {
         'question': question,
         if (grade != null && grade.isNotEmpty) 'grade': grade,
         if (subject != null && subject.isNotEmpty) 'subject': subject,
+        if (_sessionId != null) 'session_id': _sessionId,
       });
+
+      _sessionId = response.data['session_id'] as String?;
+      // ignore: avoid_print
+      print('[Chatbot] received — session_id=$_sessionId');
 
       final answer = response.data['answer'] as String;
       final rawSources = response.data['sources'] as List<dynamic>? ?? [];
@@ -48,5 +60,13 @@ class ChatbotCubit extends Cubit<ChatbotState> {
     }
   }
 
-  void clearChat() => emit(const ChatbotIdle([]));
+  void clearChat() {
+    // Tell the backend to drop this session's history, then reset locally.
+    if (_sessionId != null) {
+      _dio.post('/session/clear', data: {'session_id': _sessionId})
+          .catchError((_) {}); // best-effort, don't await
+      _sessionId = null;
+    }
+    emit(const ChatbotIdle([]));
+  }
 }

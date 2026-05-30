@@ -17,16 +17,18 @@ class ProfileController extends Controller
             ->firstOrFail();
 
         return response()->json([
-            'parent_id'       => $guardian->parent_id,
+            'id'              => $guardian->parent_id,
             'name'            => $guardian->user->name,
             'email'           => $guardian->user->email,
             'phone'           => $guardian->user->phone,
             'profile_picture' => $guardian->user->profile_picture,
             'children'  => $guardian->studentLinks->map(fn ($link) => [
-                'student_id'   => $link->student->id,
+                'id'           => $link->student->id,
                 'name'         => $link->student->user->name,
                 'relationship' => $link->relationship,
                 'isprimary'    => $link->isprimary,
+                'class_name'   => $link->student->activeEnrollment?->section?->schoolClass?->name ?? '',
+                'section'      => $link->student->activeEnrollment?->section?->name ?? '',
                 'current_enrollment' => $link->student->activeEnrollment ? [
                     'section' => $link->student->activeEnrollment->section->name,
                     'class'   => $link->student->activeEnrollment->section->schoolClass->name,
