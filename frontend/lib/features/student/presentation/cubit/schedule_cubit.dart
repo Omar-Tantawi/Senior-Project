@@ -28,11 +28,16 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     }
   }
 
+  /// Returns the lowercase weekday name for today, snapping to the next
+  /// school day (Sunday) if today is Fri or Sat — the school week is Sun–Thu.
   String _todayKey() {
     const keys = [
       'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
     ];
-    final idx = DateTime.now().weekday - 1; // Monday=1 → idx=0
-    return keys[idx.clamp(0, 6)];
+    const schoolDays = {
+      'sunday', 'monday', 'tuesday', 'wednesday', 'thursday',
+    };
+    final today = keys[(DateTime.now().weekday - 1).clamp(0, 6)];
+    return schoolDays.contains(today) ? today : 'sunday';
   }
 }

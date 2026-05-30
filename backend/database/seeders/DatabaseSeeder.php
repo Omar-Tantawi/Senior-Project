@@ -56,9 +56,12 @@ class DatabaseSeeder extends Seeder
             'role_type' => 'student', 'is_active' => true,
             'created_at' => $now, 'updated_at' => $now,
         ]);
+        // Note: Karim (DOB 2010-05-10) and Salma (DOB 2012-04-08) are siblings,
+        // roughly 2 years apart.  Earlier seeds had them 3 months apart, which
+        // is biologically impossible for full siblings.
 
         $parentUserId = DB::table('users')->insertGetId([
-            'name' => 'Mohammed Ali', 'email' => 'parent@school.test',
+            'name' => 'Mohammed Al-Rashidi', 'email' => 'parent@school.test',
             'phone' => '0504444444', 'password' => $password,
             'role_type' => 'parent', 'is_active' => true,
             'created_at' => $now, 'updated_at' => $now,
@@ -91,9 +94,9 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $student2Id = DB::table('students')->insertGetId([
-            'user_id' => $student2UserId, 'date_of_birth' => '2010-08-22',
+            'user_id' => $student2UserId, 'date_of_birth' => '2012-04-08',
             'gender' => 'female', 'address' => 'داريا - شارع الجلاء، ريف دمشق',
-            'enrollment_date' => '2024-09-01', 'graduation_year' => 2028,
+            'enrollment_date' => '2024-09-01', 'graduation_year' => 2030,
             'status' => 'active', 'created_at' => $now, 'updated_at' => $now,
         ]);
 
@@ -164,16 +167,20 @@ class DatabaseSeeder extends Seeder
             'section_id' => $sectionId, 'termname' => 'Term 1',
         ], 'schedule_id');
 
+        // School week is Sun–Thu (Syrian / Arab pattern). 5 school days, all
+        // populated so no tab in the parent app shows "No classes".
         DB::table('scheduleslot')->insert([
-            ['schedule_id' => $scheduleId, 'subject_id' => $mathId, 'teacher_id' => $teacherId, 'dayofweek' => 'Sunday', 'starttime' => '08:00'],
-            ['schedule_id' => $scheduleId, 'subject_id' => $scienceId, 'teacher_id' => $teacherId, 'dayofweek' => 'Sunday', 'starttime' => '09:00'],
-            ['schedule_id' => $scheduleId, 'subject_id' => $englishId, 'teacher_id' => $teacher2Id, 'dayofweek' => 'Sunday', 'starttime' => '10:00'],
-            ['schedule_id' => $scheduleId, 'subject_id' => $mathId, 'teacher_id' => $teacherId, 'dayofweek' => 'Monday', 'starttime' => '08:00'],
-            ['schedule_id' => $scheduleId, 'subject_id' => $englishId, 'teacher_id' => $teacher2Id, 'dayofweek' => 'Monday', 'starttime' => '09:00'],
-            ['schedule_id' => $scheduleId, 'subject_id' => $scienceId, 'teacher_id' => $teacherId, 'dayofweek' => 'Tuesday', 'starttime' => '08:00'],
-            ['schedule_id' => $scheduleId, 'subject_id' => $mathId, 'teacher_id' => $teacherId, 'dayofweek' => 'Tuesday', 'starttime' => '09:00'],
+            ['schedule_id' => $scheduleId, 'subject_id' => $mathId,    'teacher_id' => $teacherId,  'dayofweek' => 'Sunday',    'starttime' => '08:00'],
+            ['schedule_id' => $scheduleId, 'subject_id' => $scienceId, 'teacher_id' => $teacherId,  'dayofweek' => 'Sunday',    'starttime' => '09:00'],
+            ['schedule_id' => $scheduleId, 'subject_id' => $englishId, 'teacher_id' => $teacher2Id, 'dayofweek' => 'Sunday',    'starttime' => '10:00'],
+            ['schedule_id' => $scheduleId, 'subject_id' => $mathId,    'teacher_id' => $teacherId,  'dayofweek' => 'Monday',    'starttime' => '08:00'],
+            ['schedule_id' => $scheduleId, 'subject_id' => $englishId, 'teacher_id' => $teacher2Id, 'dayofweek' => 'Monday',    'starttime' => '09:00'],
+            ['schedule_id' => $scheduleId, 'subject_id' => $scienceId, 'teacher_id' => $teacherId,  'dayofweek' => 'Tuesday',   'starttime' => '08:00'],
+            ['schedule_id' => $scheduleId, 'subject_id' => $mathId,    'teacher_id' => $teacherId,  'dayofweek' => 'Tuesday',   'starttime' => '09:00'],
             ['schedule_id' => $scheduleId, 'subject_id' => $englishId, 'teacher_id' => $teacher2Id, 'dayofweek' => 'Wednesday', 'starttime' => '08:00'],
-            ['schedule_id' => $scheduleId, 'subject_id' => $scienceId, 'teacher_id' => $teacherId, 'dayofweek' => 'Wednesday', 'starttime' => '09:00'],
+            ['schedule_id' => $scheduleId, 'subject_id' => $scienceId, 'teacher_id' => $teacherId,  'dayofweek' => 'Wednesday', 'starttime' => '09:00'],
+            ['schedule_id' => $scheduleId, 'subject_id' => $mathId,    'teacher_id' => $teacherId,  'dayofweek' => 'Thursday',  'starttime' => '08:00'],
+            ['schedule_id' => $scheduleId, 'subject_id' => $englishId, 'teacher_id' => $teacher2Id, 'dayofweek' => 'Thursday',  'starttime' => '09:00'],
         ]);
 
         // ─────────────────────────────────────────────
@@ -250,10 +257,17 @@ class DatabaseSeeder extends Seeder
         // ─────────────────────────────────────────────
         // 10. ATTENDANCE (2 weeks of sessions)
         // ─────────────────────────────────────────────
+        // School week is Sun–Thu (matches the seeded schedule above).  We
+        // filter explicitly so attendance only exists on days that had a
+        // scheduled class (i.e. Fri/Sat have no attendance rows).
+        $schoolWeekdays = [
+            Carbon::SUNDAY, Carbon::MONDAY, Carbon::TUESDAY,
+            Carbon::WEDNESDAY, Carbon::THURSDAY,
+        ];
         $attendanceDays = [];
-        for ($i = 13; $i >= 0; $i--) {
+        for ($i = 20; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i);
-            if ($date->isWeekday()) {
+            if (in_array($date->dayOfWeek, $schoolWeekdays, true)) {
                 $attendanceDays[] = $date->toDateString();
             }
         }
@@ -281,26 +295,31 @@ class DatabaseSeeder extends Seeder
         // ─────────────────────────────────────────────
         // 11. NOTIFICATIONS + WARNINGS
         // ─────────────────────────────────────────────
+        // Future-dated notifications so the parent doesn't see announcements
+        // about events that already happened.
+        $tripDate    = Carbon::now()->addDays(14)->toDateString();
+        $meetingDate = Carbon::now()->addDays(21)->toDateString();
+
         $note1Id = DB::table('notification')->insertGetId([
-            'title' => 'School Trip: Science Museum - March 15',
+            'title' => 'School Trip: Science Museum - ' . $tripDate,
             'createdbyuserid' => $adminUserId, 'channel' => 'general',
             'created_at' => $now,
         ], 'notification_id');
 
         $note2Id = DB::table('notification')->insertGetId([
-            'title' => 'Parent-Teacher Meeting on April 10',
+            'title' => 'Parent-Teacher Meeting on ' . $meetingDate,
             'createdbyuserid' => $adminUserId, 'channel' => 'general',
             'created_at' => $now,
         ], 'notification_id');
 
         $warning1Id = DB::table('notification')->insertGetId([
-            'title' => 'Ali was absent without excuse on ' . $attendanceDays[2],
+            'title' => 'Karim was absent without excuse on ' . $attendanceDays[2],
             'createdbyuserid' => $teacherUserId, 'channel' => 'warning',
             'created_at' => $now,
         ], 'notification_id');
 
         $warning2Id = DB::table('notification')->insertGetId([
-            'title' => 'Ali has been disruptive in class',
+            'title' => 'Karim has been disruptive in class',
             'createdbyuserid' => $teacherUserId, 'channel' => 'warning',
             'created_at' => $now,
         ], 'notification_id');
@@ -334,21 +353,21 @@ class DatabaseSeeder extends Seeder
             [
                 'student_id' => $student1Id, 'teacher_id' => $teacherId, 'section_id' => $sectionId,
                 'type' => 'negative', 'title' => 'Disruptive in class',
-                'description' => 'Ali was talking loudly and distracting other students during the math lesson.',
+                'description' => 'Karim was talking loudly and distracting other students during the math lesson.',
                 'date' => Carbon::now()->subDays(3)->toDateString(), 'notify_parent' => true,
                 'created_at' => $now, 'updated_at' => $now,
             ],
             [
                 'student_id' => $student1Id, 'teacher_id' => $teacherId, 'section_id' => $sectionId,
                 'type' => 'positive', 'title' => 'Helped a classmate',
-                'description' => 'Ali helped Fatima understand the algebra homework during break.',
+                'description' => 'Karim helped Salma understand the algebra homework during break.',
                 'date' => Carbon::now()->subDays(1)->toDateString(), 'notify_parent' => false,
                 'created_at' => $now, 'updated_at' => $now,
             ],
             [
                 'student_id' => $student2Id, 'teacher_id' => $teacherId, 'section_id' => $sectionId,
                 'type' => 'positive', 'title' => 'Excellent participation',
-                'description' => 'Fatima actively participated in the science lab and led her group.',
+                'description' => 'Salma actively participated in the science lab and led her group.',
                 'date' => Carbon::now()->subDays(2)->toDateString(), 'notify_parent' => false,
                 'created_at' => $now, 'updated_at' => $now,
             ],
@@ -360,13 +379,13 @@ class DatabaseSeeder extends Seeder
         DB::table('messages')->insert([
             [
                 'sender_id' => $teacherUserId, 'receiver_id' => $parentUserId,
-                'student_id' => $student1Id, 'subject' => 'Ali\'s Math Progress',
-                'body' => 'Ali is doing great in math but needs to focus more during class.',
+                'student_id' => $student1Id, 'subject' => 'Karim\'s Math Progress',
+                'body' => 'Karim is doing great in math but needs to focus more during class.',
                 'read_at' => null, 'created_at' => $now->copy()->subDays(3), 'updated_at' => $now->copy()->subDays(3),
             ],
             [
                 'sender_id' => $parentUserId, 'receiver_id' => $teacherUserId,
-                'student_id' => $student1Id, 'subject' => 'Re: Ali\'s Math Progress',
+                'student_id' => $student1Id, 'subject' => 'Re: Karim\'s Math Progress',
                 'body' => 'Thank you for letting me know. I will talk to him about it.',
                 'read_at' => $now->copy()->subDays(2), 'created_at' => $now->copy()->subDays(2), 'updated_at' => $now->copy()->subDays(2),
             ],

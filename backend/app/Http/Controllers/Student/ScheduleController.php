@@ -31,17 +31,43 @@ class ScheduleController extends Controller
             return response()->json(['message' => 'No schedule found for this section.'], 404);
         }
 
-        // Group slots by day of week
-        $timetable = $schedule->slots
-            ->sortBy('starttime')
-            ->groupBy('dayofweek')
-            ->map(fn ($slots) => $slots->values());
+        // Flatten to a list of slots in the shape the Flutter app expects:
+        // { slot_id, day, start_time, end_time, subject, teacher_name, order }.
+        // The `scheduleslot` table has no end_time column, so we estimate it
+        // as start_time + 45 minutes.
+        $slots = $schedule->slots
+            ->sortBy(['dayofweek', 'starttime'])
+            ->values()
+            ->map(function ($slot, $i) {
+                $start = $slot->starttime ?? '';
+                $end = $start;
+                foreach (['H:i:s', 'H:i'] as $fmt) {
+                    try {
+                        $parsed = \Carbon\Carbon::createFromFormat($fmt, $start);
+                        if ($parsed) {
+                            $end = $parsed->copy()->addMinutes(45)->format($fmt);
+                            break;
+                        }
+                    } catch (\Throwable $e) {
+                        // try next format
+                    }
+                }
+                return [
+                    'slot_id'      => $slot->slot_id,
+                    'day'          => strtolower($slot->dayofweek ?? ''),
+                    'start_time'   => $start,
+                    'end_time'     => $end,
+                    'subject'      => $slot->subject->name ?? '',
+                    'teacher_name' => $slot->teacher->user->name ?? '',
+                    'order'        => $i,
+                ];
+            });
 
         return response()->json([
-            'section'   => $schedule->section->name,
-            'class'     => $schedule->section->schoolClass->name,
-            'term'      => $schedule->termname,
-            'timetable' => $timetable,
+            'section' => $schedule->section->name,
+            'class'   => $schedule->section->schoolClass->name,
+            'term'    => $schedule->termname,
+            'data'    => $slots,
         ]);
     }
 }
