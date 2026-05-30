@@ -111,7 +111,13 @@ class AppUrl {
   static String teacherAvailability(int id)      => '$_api/teacher/$id/availability';
   static String teacherAvailabilityItem(int id, int slotId) =>
       '$_api/teacher/$id/availability/$slotId';
-  // Question Generator — POST multipart {pdf, ...} → binary .docx download
+  // Question Generator 3.0 — curriculum-book flow
+  static String teacherQgBooks(int id)           => '$_api/teacher/$id/question-generator/books';
+  static String teacherQgChapters(int id, String book) =>
+      '$_api/teacher/$id/question-generator/books/${Uri.encodeComponent(book)}/chapters';
+  static String teacherQgGenerate(int id)        => '$_api/teacher/$id/question-generator/generate';
+  static String teacherQgExport(int id)          => '$_api/teacher/$id/question-generator/export';
+  // Question Generator — legacy PDF upload (non-curriculum books)
   static String teacherGenerateExam(int id)      => '$_api/teacher/$id/generate-exam';
   // Conversations (WhatsApp-style chat with parents)
   static String teacherConversations(int id)     => '$_api/teacher/$id/conversations';

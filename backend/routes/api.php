@@ -485,8 +485,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{teacherId}/notifications/{recipientId}/read', [TeacherNotificationController::class, 'markRead']);
         Route::put('/{teacherId}/notifications/read-all',           [TeacherNotificationController::class, 'markAllRead']);
 
-        // Question Generator — upload PDF → receive a .docx exam file
-        Route::post('/{teacherId}/generate-exam', [TeacherQuestionGeneratorController::class, 'generate']);
+        // Question Generator — 3.0 curriculum-book flow
+        Route::get( '/{teacherId}/question-generator/books',                        [TeacherQuestionGeneratorController::class, 'books']);
+        Route::get( '/{teacherId}/question-generator/books/{book}/chapters',        [TeacherQuestionGeneratorController::class, 'chapters'])
+            ->where('book', '.+');
+        Route::post('/{teacherId}/question-generator/generate',                     [TeacherQuestionGeneratorController::class, 'generate']);
+        Route::post('/{teacherId}/question-generator/export',                       [TeacherQuestionGeneratorController::class, 'export']);
+        // Question Generator — legacy PDF upload (non-curriculum books)
+        Route::post('/{teacherId}/generate-exam',                                   [TeacherQuestionGeneratorController::class, 'fromPdf']);
 
         // Conversations (WhatsApp-style chat with parents)
         Route::get('/{teacherId}/conversations',                           [TeacherConversationController::class, 'index']);
