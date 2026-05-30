@@ -8,7 +8,7 @@ import asyncio
 
 from config import MAX_RESULTS_PER_SOURCE
 from models import ContentItem
-from sources import youtube_source, ddg_source, openalex, wikimedia_source, khan_academy
+from sources import youtube_source, ddg_source, openalex, wikimedia_source, arabic_edu_source
 
 
 class Searcher:
@@ -37,12 +37,12 @@ class Searcher:
             return loop.run_in_executor(None, fn, *args)
 
         if "video" in content_types:
-            tasks.append(run(youtube_source.search,   kw_en, kw_ar, per_source))
-            tasks.append(run(khan_academy.search,     kw_en, kw_ar, per_source))
+            tasks.append(run(youtube_source.search,      kw_en, kw_ar, per_source))
+            tasks.append(run(arabic_edu_source.search,   kw_en, kw_ar, per_source))
 
         if "article" in content_types:
             tasks.append(run(ddg_source.search_articles, kw_en, kw_ar, per_source))
-            tasks.append(run(khan_academy.search,        kw_en, kw_ar, per_source))
+            tasks.append(run(arabic_edu_source.search,   kw_en, kw_ar, per_source))
 
         if "pdf" in content_types:
             tasks.append(run(ddg_source.search_pdfs, kw_en, kw_ar, per_source))

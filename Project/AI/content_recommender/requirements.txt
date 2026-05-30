@@ -3,5 +3,4 @@ uvicorn[standard]>=0.29.0
 pydantic>=2.7.0
 sentence-transformers>=3.0.0
 numpy>=1.26.0
-yt-dlp>=2024.10.0
 ddgs>=9.0.0

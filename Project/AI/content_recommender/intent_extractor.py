@@ -5,30 +5,34 @@ free-form Arabic input using Ollama (command-r7b-arabic).
 Falls back to raw passthrough if Ollama is unreachable so search still works.
 """
 
-from __future__ import annotations
 import json
 import re
 import urllib.request
 import urllib.error
+from typing import Optional
 
 from config import OLLAMA_URL, OLLAMA_MODEL, OLLAMA_TIMEOUT
 
 
-SYSTEM_PROMPT = (
-    "You are a search query optimizer for an Arabic-language school management "
-    "system. Given a teacher's free-form input (usually Arabic, sometimes "
-    "English), extract the educational topic and produce bilingual search "
-    "keywords. Always respond with a single JSON object and nothing else."
+_SYSTEM_PROMPT = (
+    "You are a search query optimizer for an Arabic-language school management system. "
+    "Given a teacher's input, extract the exact educational topic and produce bilingual keywords.\n\n"
+    "CRITICAL RULES:\n"
+    "1. NEVER paraphrase, generalize, or replace technical terms. "
+    "If the teacher writes 'النواس المرن' keep BOTH words — do NOT replace with 'المرونة' alone.\n"
+    "2. Each Arabic keyword must be a direct substring or close form of the original query's words.\n"
+    "3. For science/math topics (physics, chemistry, biology, math), preserve the exact Arabic term "
+    "as the first keyword — do not substitute synonyms.\n"
+    "4. Always respond with a single JSON object and nothing else."
 )
 
-
-USER_TEMPLATE = """Teacher input: "{query}"
+_USER_TEMPLATE = """Teacher input: "{query}"
 
 Return a JSON object with these exact keys:
-- "topic_ar":  clean Arabic topic phrase (3-8 words, no filler verbs)
-- "topic_en":  English translation of the topic (3-8 words)
-- "keywords_ar": list of 3-5 Arabic search keywords
-- "keywords_en": list of 3-5 English search keywords
+- "topic_ar":  the exact Arabic topic phrase from the input (3-8 words, remove only filler verbs like أريد/ابحث عن)
+- "topic_en":  precise English translation of that exact topic (3-8 words)
+- "keywords_ar": list of 3-5 Arabic search keywords — first keyword MUST be the exact topic phrase
+- "keywords_en": list of 3-5 English search keywords — first keyword MUST be the direct translation
 - "content_type_hints": list of any explicitly requested types from {{"video","article","pdf","image"}}; empty list if none
 
 Respond with the JSON only, no markdown, no commentary."""
@@ -41,7 +45,6 @@ class IntentExtractor:
     # ── Public ────────────────────────────────────────────────────────────────
 
     def extract(self, query: str, refinement: str = "") -> dict:
-        """Return a dict with topic_ar, topic_en, keywords_ar, keywords_en, content_type_hints."""
         combined = query.strip()
         if refinement.strip():
             combined = f"{combined}  ||  {refinement.strip()}"
@@ -50,12 +53,9 @@ class IntentExtractor:
         parsed = self._parse_json(raw) if raw else None
         if parsed:
             return self._normalize(parsed, combined)
-
-        # Fallback: passthrough so search still works without Ollama
         return self._fallback(combined)
 
     def warmup(self):
-        """Fire a tiny prompt to load the model into VRAM."""
         try:
             self._call_ollama("warmup", num_predict=8)
             print("[IntentExtractor] Ollama warmed up.")
@@ -71,25 +71,21 @@ class IntentExtractor:
                 models = [m["name"] for m in data.get("models", [])]
                 base = OLLAMA_MODEL.split(":")[0]
                 if not any(base in m for m in models):
-                    print(f"[IntentExtractor] WARNING: Model '{OLLAMA_MODEL}' not pulled.")
-                    print(f"  Run:  ollama pull {OLLAMA_MODEL}")
+                    print(f"[IntentExtractor] WARNING: '{OLLAMA_MODEL}' not pulled. Run: ollama pull {OLLAMA_MODEL}")
                 else:
                     print(f"[IntentExtractor] Ollama ready — model: {OLLAMA_MODEL}")
         except urllib.error.URLError:
-            print("[IntentExtractor] WARNING: Ollama not running. Falling back to raw passthrough.")
+            print("[IntentExtractor] WARNING: Ollama not running. Will use raw passthrough.")
 
-    def _call_ollama(self, query: str, num_predict: int = 512) -> str | None:
+    def _call_ollama(self, query: str, num_predict: int = 512) -> Optional[str]:
         payload = json.dumps({
             "model": OLLAMA_MODEL,
             "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user",   "content": USER_TEMPLATE.format(query=query)},
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user",   "content": _USER_TEMPLATE.format(query=query)},
             ],
             "stream": False,
-            "options": {
-                "temperature": 0.3,
-                "num_predict": num_predict,
-            },
+            "options": {"temperature": 0.2, "num_predict": num_predict},
         }).encode("utf-8")
 
         req = urllib.request.Request(
@@ -98,7 +94,6 @@ class IntentExtractor:
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-
         try:
             with urllib.request.urlopen(req, timeout=OLLAMA_TIMEOUT) as resp:
                 data = json.loads(resp.read())
@@ -108,14 +103,12 @@ class IntentExtractor:
             return None
 
     @staticmethod
-    def _parse_json(raw: str) -> dict | None:
-        # Strip markdown fences the model sometimes adds
+    def _parse_json(raw: str) -> Optional[dict]:
         cleaned = re.sub(r"```(?:json)?", "", raw).strip().rstrip("`").strip()
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError:
             pass
-        # Try first {...} block
         match = re.search(r"\{.*\}", cleaned, re.DOTALL)
         if match:
             try:

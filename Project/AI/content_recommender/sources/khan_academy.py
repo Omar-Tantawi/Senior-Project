@@ -6,11 +6,11 @@ Returns videos and articles from Khan Academy in both English and Arabic.
 Khan Academy Arabic: https://ar.khanacademy.org
 """
 
-from __future__ import annotations
 import json
 import urllib.parse
 import urllib.request
 import urllib.error
+from typing import Optional
 
 from config import SEARCH_TIMEOUT
 from models import ContentItem
@@ -85,7 +85,7 @@ def _ddg_ka_search(query: str, lang: str = "en", limit: int = 10) -> list[Conten
     return items
 
 
-def _parse_ka_result(r: dict, lang: str) -> ContentItem | None:
+def _parse_ka_result(r: dict, lang: str) -> Optional[ContentItem]:
     """Parse a single Khan Academy API result into a ContentItem."""
     kind  = r.get("kind") or r.get("node_type") or ""
     title = (r.get("title") or r.get("translated_title") or "").strip()

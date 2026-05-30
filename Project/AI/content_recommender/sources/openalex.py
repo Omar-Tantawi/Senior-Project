@@ -3,15 +3,15 @@
 import json
 import urllib.parse
 import urllib.request
-from typing import Optional
 import urllib.error
+from typing import Optional
 
 from config import SEARCH_TIMEOUT
 from models import ContentItem
 from sources._util import make_query
 
 API_URL    = "https://api.openalex.org/works"
-USER_AGENT = "ContentRecommenderBot/1.0 (mailto:abdullah.helwani9@gmail.com)"
+USER_AGENT = "ContentRecommenderBot/1.0 (educational-recommender)"
 
 
 def search(keywords_en: list[str], max_results: int) -> list[ContentItem]:
@@ -25,7 +25,7 @@ def search(keywords_en: list[str], max_results: int) -> list[ContentItem]:
         "select":   "title,abstract_inverted_index,doi,publication_year,open_access,primary_location,language",
     })
     # Putting an email in the request gives access to the "polite pool" — better rate limits
-    url = f"{API_URL}?{params}&mailto=abdullah.helwani9@gmail.com"
+    url = f"{API_URL}?{params}"
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
 
     try:
