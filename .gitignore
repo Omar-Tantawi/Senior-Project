@@ -8,3 +8,8 @@ KIRA/QUESTION GEN 3.0/__pycache__/
 Project/AI/content_recommender/training/checkpoints/
 Project/AI/content_recommender/**/__pycache__/
 Project/AI/content_recommender/__pycache__/
+
+# Footage files (too large for GitHub)
+**/*.avi
+**/*.mp4
+**/footage/

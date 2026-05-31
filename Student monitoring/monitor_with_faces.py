@@ -62,7 +62,7 @@ DEFAULT_FOOTAGE_DIR    = THIS_DIR / "footage"
 
 YOLO_CONF          = 0.35    # YOLO detection confidence
 YOLO_IMGSZ         = 480     # inference size for YOLO (smaller = faster on CPU)
-FACE_DET_THRESH    = 0.50    # InsightFace detection confidence
+FACE_DET_THRESH    = 0.20    # InsightFace detection confidence (matches attendance system det_thresh)
 FACE_DET_SIZE      = 640     # face detector input size (must match training size to avoid shape warnings)
 MIN_FACE_HEIGHT    = 40      # pixels — skip distant/tiny faces
 SIM_THRESHOLD      = 0.25    # cosine similarity to accept a face match (matches attendance config)

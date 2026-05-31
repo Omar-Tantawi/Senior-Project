@@ -10,7 +10,7 @@ detection:
   det_model: "models/det_10g.onnx"      # RetinaFace detection model
   rec_model: "models/iresnet50_adaface_fp32.onnx"    # Trained AdaFace model
   det_size: [640, 640]                   # Detection input size
-  det_thresh: 0.5                        # Minimum face detection confidence
+  det_thresh: 0.20                       # Minimum face detection confidence (lower = detects faces further away)
   max_faces: 60                          # Max faces to detect per frame
 
 recognition:

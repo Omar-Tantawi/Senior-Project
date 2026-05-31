@@ -100,7 +100,7 @@ async def recommend(body: RecommendRequest):
 
     intent = extractor.extract(body.query, body.refinement)
 
-    per_source = max(MAX_RESULTS_PER_SOURCE, body.max_results * 2)
+    per_source = MAX_RESULTS_PER_SOURCE
     raw_items = await searcher.search(
         intent=intent,
         content_types=body.content_types,

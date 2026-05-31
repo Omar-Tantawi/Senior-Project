@@ -13,6 +13,8 @@ Two ways to run:
 
 import argparse
 import time
+import sys
+import subprocess
 import cv2
 import yaml
 import json
@@ -50,6 +52,62 @@ def save_unknown_face(frame, face, save_dir: Path) -> str:
     path = save_dir / f"unknown_{timestamp}.jpg"
     cv2.imwrite(str(path), crop)
     return str(path)
+
+
+# ============================================================
+#  Auto Enrollment (triggered from dashboard)
+# ============================================================
+
+def run_enrollment(student_id: str, student_name: str) -> dict:
+    """Run enrollment as a subprocess so the OpenCV window gets its own process/main thread.
+    Identical behaviour to: python enroll.py --student-id X --student-name "Y"
+    The admin presses SPACE in the webcam window to capture each photo.
+    """
+    base_dir   = Path(__file__).parent
+    enroll_py  = base_dir / "enroll.py"
+    emb_dir    = base_dir / _config["storage"]["embeddings_dir"] / str(student_id)
+
+    print(f"\n[SERVER] Launching enrollment for {student_name} (ID: {student_id})")
+
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(enroll_py),
+             "--student-id",   student_id,
+             "--student-name", student_name],
+            cwd=str(base_dir),
+            input="y\n",            # auto-answer overwrite prompt
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+        # Echo subprocess output to the server console for debugging
+        if proc.stdout:
+            print("---- enroll.py stdout ----")
+            print(proc.stdout)
+        if proc.stderr:
+            print("---- enroll.py stderr ----")
+            print(proc.stderr)
+        print(f"---- enroll.py exit code: {proc.returncode} ----")
+    except subprocess.TimeoutExpired:
+        return {"success": False, "message": "Enrollment timed out (10 min limit)"}
+    except Exception as e:
+        return {"success": False, "message": f"Enrollment process error: {e}"}
+
+    # Verify embeddings were actually saved
+    if (emb_dir / "embeddings.npy").exists():
+        _recognizer.load_database()
+        return {"success": True,
+                "message": f"{student_name} enrolled successfully",
+                "photos":  int(np.load(str(emb_dir / "embeddings.npy")).shape[0])}
+
+    # Surface the last line of stderr/stdout to help diagnose
+    detail = ""
+    if proc.stderr and proc.stderr.strip():
+        detail = proc.stderr.strip().splitlines()[-1]
+    elif proc.stdout and proc.stdout.strip():
+        detail = proc.stdout.strip().splitlines()[-1]
+    return {"success": False,
+            "message": f"Enrollment did not save. {detail}".strip()}
 
 
 # ============================================================
@@ -192,15 +250,13 @@ def run_scan(duration_sec: int = 120, interval_sec: int = 5,
                 print(f"  [Scan {scan_count}] Detecting faces... ({remaining_sec}s remaining)")
 
                 all_faces = _detector.detect_faces(frame)
-                # Filter out tiny false detections — face must be at least 40x40 pixels
+                # Filter out tiny false detections — face must be at least 20x20 pixels
                 last_faces = []
                 for f in all_faces:
                     bbox = f.bbox.astype(int)
                     w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-                    if w >= 40 and h >= 40:
+                    if w >= 20 and h >= 20:
                         last_faces.append(f)
-                    else:
-                        pass  # Skip tiny false positive
                 if len(all_faces) != len(last_faces):
                     print(f"    [Filter] Kept {len(last_faces)}/{len(all_faces)} faces (removed {len(all_faces)-len(last_faces)} tiny false detections)")
                 last_results = []
@@ -349,6 +405,21 @@ class ScanHandler(BaseHTTPRequestHandler):
                 show_display=True,
             )
 
+            self._json_response(result)
+
+        elif self.path == "/enroll":
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(content_length)) if content_length > 0 else {}
+
+            student_id   = body.get("student_id")
+            student_name = body.get("student_name")
+
+            if not student_id or not student_name:
+                self._json_response({"error": "student_id and student_name required"}, 400)
+                return
+
+            print(f"\n[SERVER] Enrollment requested: {student_name} (ID: {student_id})")
+            result = run_enrollment(str(student_id), student_name)
             self._json_response(result)
 
         else:

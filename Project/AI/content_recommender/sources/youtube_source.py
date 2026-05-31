@@ -18,6 +18,17 @@ def _api_get(url: str, params: dict) -> Optional[dict]:
     try:
         with urllib.request.urlopen(full_url, timeout=10) as resp:
             return json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = ""
+        try:
+            body = e.read().decode("utf-8", errors="ignore")
+        except Exception:
+            pass
+        if e.code == 403 and "quotaExceeded" in body:
+            print("[youtube_source] ⚠ Daily quota exceeded — falling back to DDG.")
+        else:
+            print(f"[youtube_source] HTTP {e.code}: {body[:200]}")
+        return None
     except (urllib.error.URLError, json.JSONDecodeError) as e:
         print(f"[youtube_source] API request failed: {e}")
         return None
@@ -67,12 +78,58 @@ def _search_one(query: str, limit: int) -> list[dict]:
     return data.get("items", []) if data else []
 
 
+def _ddg_youtube_fallback(keywords_en: list[str], keywords_ar: list[str], max_results: int) -> list[ContentItem]:
+    """Fallback when YouTube API quota is exhausted — search via DDG site:youtube.com."""
+    try:
+        from ddgs import DDGS
+    except ImportError:
+        return []
+
+    items: list[ContentItem] = []
+    seen: set[str] = set()
+
+    queries = []
+    if keywords_ar:
+        queries.append(make_query(keywords_ar))
+    if keywords_en:
+        queries.append(make_query(keywords_en, "educational"))
+
+    for q in queries:
+        try:
+            with DDGS() as ddgs:
+                results = list(ddgs.text(f"site:youtube.com {q}", max_results=max_results, timeout=8))
+            for r in results:
+                url = r.get("href") or r.get("url") or ""
+                if "youtube.com/watch" not in url or url in seen:
+                    continue
+                seen.add(url)
+                title = (r.get("title") or "").strip()
+                desc  = (r.get("body")  or "").strip()
+                items.append(ContentItem(
+                    content_type="video",
+                    title=title or url,
+                    url=url,
+                    description=desc,
+                    source="youtube",
+                    language=detect_language(f"{title} {desc}"),
+                ))
+        except Exception as e:
+            print(f"[youtube_source] DDG fallback failed: {e}")
+
+    return items
+
+
 def search(keywords_en: list[str], keywords_ar: list[str], max_results: int) -> list[ContentItem]:
     raw: list[dict] = []
     if keywords_en:
         raw += _search_one(make_query(keywords_en, "educational"), max_results)
     if keywords_ar:
         raw += _search_one(make_query(keywords_ar), max_results)
+
+    # If API returned nothing (quota exceeded or error), fall back to DDG
+    if not raw:
+        print("[youtube_source] API returned no results — using DDG fallback.")
+        return _ddg_youtube_fallback(keywords_en, keywords_ar, max_results)
 
     seen: set[str] = set()
     video_ids: list[str] = []

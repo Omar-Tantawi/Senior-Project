@@ -24,7 +24,8 @@ class _TeacherContentRecommenderScreenState
   final _queryCtrl = TextEditingController();
   final _dio = Dio();
 
-  final _selectedTypes = ['video', 'article', 'pdf', 'image'];
+  final _selectedTypes = <String>{'video', 'article', 'pdf', 'image'};
+  String _langPref = 'both'; // 'ar' | 'en' | 'both'
 
   List<_ResultItem> _results = [];
   bool _loading = false;
@@ -58,8 +59,10 @@ class _TeacherContentRecommenderScreenState
         ),
         data: {
           'query': q,
-          'content_types': _selectedTypes.toList(),
-          'language_preference': 'both',
+          'content_types': _selectedTypes.isEmpty
+              ? ['video', 'article', 'pdf', 'image']
+              : _selectedTypes.toList(),
+          'language_preference': _langPref,
           'max_results': 15,
         },
       );
@@ -142,6 +145,90 @@ class _TeacherContentRecommenderScreenState
                           contentPadding: const EdgeInsets.all(14),
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Content type selector
+                    Text(
+                      'Content type',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _TypeChip(
+                          label: 'Video',
+                          icon: Icons.play_circle_rounded,
+                          color: const Color(0xFFEF4444),
+                          selected: _selectedTypes.contains('video'),
+                          onTap: () => setState(() => _selectedTypes.contains('video')
+                              ? _selectedTypes.remove('video')
+                              : _selectedTypes.add('video')),
+                        ),
+                        _TypeChip(
+                          label: 'Article',
+                          icon: Icons.article_rounded,
+                          color: const Color(0xFF6366F1),
+                          selected: _selectedTypes.contains('article'),
+                          onTap: () => setState(() => _selectedTypes.contains('article')
+                              ? _selectedTypes.remove('article')
+                              : _selectedTypes.add('article')),
+                        ),
+                        _TypeChip(
+                          label: 'PDF',
+                          icon: Icons.picture_as_pdf_rounded,
+                          color: const Color(0xFFF59E0B),
+                          selected: _selectedTypes.contains('pdf'),
+                          onTap: () => setState(() => _selectedTypes.contains('pdf')
+                              ? _selectedTypes.remove('pdf')
+                              : _selectedTypes.add('pdf')),
+                        ),
+                        _TypeChip(
+                          label: 'Image',
+                          icon: Icons.image_rounded,
+                          color: const Color(0xFF10B981),
+                          selected: _selectedTypes.contains('image'),
+                          onTap: () => setState(() => _selectedTypes.contains('image')
+                              ? _selectedTypes.remove('image')
+                              : _selectedTypes.add('image')),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Language preference
+                    Text(
+                      'Language',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(
+                          value: 'ar',
+                          label: Text('العربية'),
+                          icon: Icon(Icons.language_rounded, size: 16),
+                        ),
+                        ButtonSegment(
+                          value: 'both',
+                          label: Text('Both'),
+                          icon: Icon(Icons.public_rounded, size: 16),
+                        ),
+                        ButtonSegment(
+                          value: 'en',
+                          label: Text('English'),
+                          icon: Icon(Icons.language_rounded, size: 16),
+                        ),
+                      ],
+                      selected: {_langPref},
+                      onSelectionChanged: (v) =>
+                          setState(() => _langPref = v.first),
                     ),
                     const SizedBox(height: 14),
 
@@ -260,25 +347,6 @@ class _TeacherContentRecommenderScreenState
     );
   }
 
-  String _typeLabel(String t) {
-    switch (t) {
-      case 'video':   return 'Video';
-      case 'article': return 'Article';
-      case 'pdf':     return 'PDF';
-      case 'image':   return 'Image';
-      default:        return t;
-    }
-  }
-
-  IconData _typeIcon(String t) {
-    switch (t) {
-      case 'video':   return Icons.play_circle_outline_rounded;
-      case 'article': return Icons.article_outlined;
-      case 'pdf':     return Icons.picture_as_pdf_outlined;
-      case 'image':   return Icons.image_outlined;
-      default:        return Icons.link_rounded;
-    }
-  }
 }
 
 // ── Data model ────────────────────────────────────────────────────────────────
@@ -450,6 +518,65 @@ class _ResultCard extends StatelessWidget {
     return const Color(0xFF6B7280);
   }
 }
+
+// ── Type chip ─────────────────────────────────────────────────────────────────
+
+class _TypeChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+  const _TypeChip({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.13) : cs.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? color : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15,
+                color: selected ? color : cs.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? color : cs.onSurfaceVariant,
+              ),
+            ),
+            if (selected) ...[
+              const SizedBox(width: 4),
+              Icon(Icons.check_circle_rounded, size: 13, color: color),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Tag chip ──────────────────────────────────────────────────────────────────
 
 class _Tag extends StatelessWidget {
   final String label;

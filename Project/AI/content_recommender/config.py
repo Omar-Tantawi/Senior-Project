@@ -1,5 +1,12 @@
 import os
+import urllib.request
 from pathlib import Path
+
+# Bypass any system proxy (VPN/corporate proxy) for all urllib calls.
+# Without this, urllib follows Windows proxy settings which may refuse connections.
+_no_proxy_handler = urllib.request.ProxyHandler({})
+_opener = urllib.request.build_opener(_no_proxy_handler)
+urllib.request.install_opener(_opener)
 
 # Auto-load .env file if it exists next to this file
 _env_path = Path(__file__).parent / ".env"

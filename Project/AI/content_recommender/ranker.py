@@ -27,17 +27,10 @@ class Ranker:
 
         sims = m_vec @ q_vec   # cosine because vectors are normalized
 
-        _MIN_RELEVANCE = 0.45
         for it, s in zip(items, sims):
-            it.relevance_score = float(max(0.0, min(1.0, s)))
+            # Map cosine [-1, 1] → score [0, 1] so every item gets a
+            # meaningful score and sorting is always stable.
+            it.relevance_score = float(max(0.0, min(1.0, (float(s) + 1) / 2)))
 
-        above = [it for it in items if it.relevance_score >= _MIN_RELEVANCE]
-        above.sort(key=lambda x: x.relevance_score, reverse=True)
-
-        # If threshold filters everything out, return best available so the
-        # teacher always gets something rather than an empty response.
-        if not above:
-            items.sort(key=lambda x: x.relevance_score, reverse=True)
-            return items[:top_n]
-
-        return above[:top_n]
+        items.sort(key=lambda x: x.relevance_score, reverse=True)
+        return items[:top_n]

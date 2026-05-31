@@ -5,10 +5,13 @@ import {
 } from 'antd';
 import {
   PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, DeleteOutlined,
-  SwapOutlined, StopOutlined,
+  SwapOutlined, StopOutlined, CameraOutlined,
 } from '@ant-design/icons';
 import api from '../api/axios';
+import axios from 'axios';
 import dayjs from 'dayjs';
+
+const AI_SERVER_URL = 'http://localhost:5000';
 
 const { Title } = Typography;
 
@@ -79,6 +82,11 @@ export default function Students() {
   const [assignSectionId, setAssignSectionId] = useState<number | undefined>();
   const [assignLoading, setAssignLoading] = useState(false);
 
+  // Face enrollment
+  const [enrollStudent, setEnrollStudent] = useState<StudentRecord | null>(null);
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [enrollLoading, setEnrollLoading] = useState(false);
+
   const fetchStudents = useCallback(async () => {
     setLoading(true);
     try {
@@ -144,6 +152,33 @@ export default function Students() {
         }
       },
     });
+  };
+
+  const handleEnrollFace = async () => {
+    if (!enrollStudent) return;
+    setEnrollLoading(true);
+    try {
+      const res = await axios.post(`${AI_SERVER_URL}/enroll`, {
+        student_id: enrollStudent.id,
+        student_name: enrollStudent.user.name,
+      }, { timeout: 300000 }); // 5 min timeout — admin captures photos manually
+
+      if (res.data?.success) {
+        message.success(res.data.message);
+        setEnrollOpen(false);
+      } else {
+        message.error(res.data?.message || 'Enrollment failed');
+      }
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.code === 'ECONNREFUSED') {
+        message.error('AI server is not running. Start it with: python main.py --server --port 5000');
+      } else {
+        message.error('Enrollment failed or was cancelled');
+      }
+    } finally {
+      setEnrollLoading(false);
+      setEnrollOpen(false);
+    }
   };
 
   const handleCreate = async (values: Record<string, unknown>) => {
@@ -273,6 +308,9 @@ export default function Students() {
               <Button size="small" icon={<SwapOutlined />} onClick={() => openAssign(record)} />
             </Tooltip>
           )}
+          <Tooltip title="Enroll face for attendance">
+            <Button size="small" icon={<CameraOutlined />} onClick={() => { setEnrollStudent(record); setEnrollOpen(true); }} />
+          </Tooltip>
           <Button size="small" icon={<DeleteOutlined />} danger onClick={() => {
             Modal.confirm({
               title: 'Delete this student?',
@@ -462,6 +500,28 @@ export default function Students() {
             </Button>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Face Enrollment Modal */}
+      <Modal
+        title={<Space><CameraOutlined /> Enroll Face — {enrollStudent?.user.name}</Space>}
+        open={enrollOpen}
+        onCancel={() => { if (!enrollLoading) setEnrollOpen(false); }}
+        onOk={handleEnrollFace}
+        okText={enrollLoading ? 'Camera is open — press SPACE to capture…' : 'Start Enrollment'}
+        confirmLoading={enrollLoading}
+        width={440}
+      >
+        <p>The webcam window will open on the AI server machine.</p>
+        <ul style={{ paddingLeft: 20, color: '#555' }}>
+          <li>Make sure <strong>{enrollStudent?.user.name}</strong> is in front of the camera</li>
+          <li>Press <strong>SPACE</strong> to capture each photo ({enrollStudent ? 5 : 0} photos total)</li>
+          <li>Vary the pose slightly between each photo</li>
+          <li>Press <strong>Q</strong> to cancel at any time</li>
+        </ul>
+        <p style={{ color: '#888', fontSize: 12 }}>
+          The button will stay loading until all photos are captured.
+        </p>
       </Modal>
 
       {/* Assign Section Modal */}

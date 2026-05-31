@@ -7,7 +7,8 @@ _EN_RE = re.compile(r"[A-Za-z]")
 
 
 def detect_language(text: str) -> str:
-    """Quick language tag based on character ratio. Returns 'ar', 'en', or 'unknown'."""
+    """Quick language tag based on character ratio.
+    Returns 'ar', 'en', 'mixed', or 'unknown'."""
     if not text:
         return "unknown"
     ar = len(_AR_RE.findall(text))
@@ -15,9 +16,14 @@ def detect_language(text: str) -> str:
     total = ar + en
     if total == 0:
         return "unknown"
-    if ar / total > 0.3:
+    ar_ratio = ar / total
+    en_ratio = en / total
+    # Both scripts present in meaningful amounts → mixed
+    if ar_ratio >= 0.2 and en_ratio >= 0.2:
+        return "mixed"
+    if ar_ratio >= 0.2:
         return "ar"
-    if en / total > 0.3:
+    if en_ratio >= 0.2:
         return "en"
     return "unknown"
 

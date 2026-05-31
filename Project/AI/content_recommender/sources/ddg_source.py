@@ -14,7 +14,7 @@ def _ddg_text(query: str, limit: int) -> list[dict]:
         return []
     try:
         with DDGS() as ddgs:
-            return list(ddgs.text(query, max_results=limit, region="wt-wt"))
+            return list(ddgs.text(query, max_results=limit, region="wt-wt", timeout=8))
     except Exception as e:
         print(f"[ddg_source] search failed for '{query}': {e}")
         return []
