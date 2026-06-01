@@ -12,7 +12,21 @@
       "Read(//c/c/Users/ASUS/Desktop/Senior-Project/frontend/android/**)",
       "Read(//c/c/Users/ASUS/Desktop/Senior-Project/frontend/android/app/**)",
       "Bash(dart analyze *)",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(git -C \"C:\\\\Users\\\\ASUS\\\\Desktop\\\\Senior-Project\\\\.claude\\\\worktrees\\\\focused-pasteur-1216b8\" status)",
+      "Bash(cp \"C:\\\\Users\\\\ASUS\\\\Desktop\\\\Senior-Project\\\\.claude\\\\worktrees\\\\focused-pasteur-1216b8\\\\admin-dashboard\\\\src\\\\pages\\\\Notifications.tsx\" \"C:\\\\Users\\\\ASUS\\\\Desktop\\\\Senior-Project\\\\admin-dashboard\\\\src\\\\pages\\\\Notifications.tsx\")",
+      "Bash(cp \"C:\\\\Users\\\\ASUS\\\\Desktop\\\\Senior-Project\\\\.claude\\\\worktrees\\\\focused-pasteur-1216b8\\\\backend\\\\app\\\\Http\\\\Controllers\\\\Admin\\\\NotificationController.php\" \"C:\\\\Users\\\\ASUS\\\\Desktop\\\\Senior-Project\\\\backend\\\\app\\\\Http\\\\Controllers\\\\Admin\\\\NotificationController.php\")",
+      "Bash(cp \"C:\\\\Users\\\\ASUS\\\\Desktop\\\\Senior-Project\\\\.claude\\\\worktrees\\\\focused-pasteur-1216b8\\\\backend\\\\routes\\\\api.php\" \"C:\\\\Users\\\\ASUS\\\\Desktop\\\\Senior-Project\\\\backend\\\\routes\\\\api.php\")",
+      "Bash(cp \"C:\\\\Users\\\\ASUS\\\\Desktop\\\\Senior-Project\\\\.claude\\\\worktrees\\\\focused-pasteur-1216b8\\\\frontend\\\\lib\\\\core\\\\utils\\\\app_url.dart\" \"C:\\\\Users\\\\ASUS\\\\Desktop\\\\Senior-Project\\\\frontend\\\\lib\\\\core\\\\utils\\\\app_url.dart\")",
+      "Bash(cp \"C:\\\\Users\\\\ASUS\\\\Desktop\\\\Senior-Project\\\\.claude\\\\worktrees\\\\focused-pasteur-1216b8\\\\frontend\\\\lib\\\\features\\\\teacher\\\\data\\\\repos\\\\teacher_repo.dart\" \"C:\\\\Users\\\\ASUS\\\\Desktop\\\\Senior-Project\\\\frontend\\\\lib\\\\features\\\\teacher\\\\data\\\\repos\\\\teacher_repo.dart\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ASUS\\\\Desktop\\\\Senior-Project\" -Force)",
+      "Bash(Select-Object Name, FullName)",
+      "Bash(ls -la \"C:\\\\Users\\\\ASUS\\\\Desktop\\\\Senior-Project\" | head -30)",
+      "Bash(curl -I \"http://localhost:8000/storage/profile-pictures/32/YuYlVwFNeLPuxHNKZ5L37MMSFayUkVhxtWLY4xXM.png\")",
+      "Bash(curl -I -H \"Origin: http://localhost:50000\" \"http://localhost:8000/storage/profile-pictures/32/YuYlVwFNeLPuxHNKZ5L37MMSFayUkVhxtWLY4xXM.png\")",
+      "Bash(grep -E \"\\\\.\\(php\\)$\")",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }

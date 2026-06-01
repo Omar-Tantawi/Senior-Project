@@ -17,6 +17,7 @@ import 'package:first_try/features/teacher/presentation/cubit/teacher_schedule_s
 import 'package:first_try/features/teacher/presentation/cubit/teacher_vacation_cubit.dart';
 import 'package:first_try/features/teacher/presentation/screens/teacher_availability_screen.dart';
 import 'package:first_try/features/teacher/presentation/screens/teacher_behavior_screen.dart';
+import 'package:first_try/features/teacher/presentation/screens/teacher_content_recommender_screen.dart';
 import 'package:first_try/features/teacher/presentation/screens/teacher_messages_screen.dart';
 import 'package:first_try/features/teacher/presentation/screens/teacher_performance_screen.dart';
 import 'package:first_try/features/teacher/presentation/screens/teacher_salary_screen.dart';
@@ -524,6 +525,12 @@ class _MoreGrid extends StatelessWidget {
             fetcher: repo.getAssessmentCalendar,
           );
         },
+      ),
+      _MoreItem(
+        icon: Icons.auto_awesome_rounded,
+        label: 'AI Content',
+        color: const Color(0xFF10B981),
+        builder: (_) => const TeacherContentRecommenderScreen(),
       ),
     ];
 

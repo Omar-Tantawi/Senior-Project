@@ -66,6 +66,7 @@ use App\Http\Controllers\Admin\TeacherAvailabilityController;
 use App\Http\Controllers\Admin\AnalyticsReportController;
 use App\Http\Controllers\Teacher\VacationRequestController as TeacherVacationRequestController;
 use App\Http\Controllers\Teacher\AvailabilityController as TeacherAvailabilityCtrl;
+use App\Http\Controllers\Teacher\NotificationController as TeacherNotificationController;
 use App\Http\Controllers\Driver\TripController as DriverTripController;
 use App\Http\Controllers\Driver\ProfileController as DriverProfileController;
 use App\Http\Controllers\Driver\TrackingController as DriverTrackingController;
@@ -416,6 +417,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{teacherId}/availability',        [TeacherAvailabilityCtrl::class, 'store']);
         Route::put('/{teacherId}/availability/{id}',    [TeacherAvailabilityCtrl::class, 'update']);
         Route::delete('/{teacherId}/availability/{id}', [TeacherAvailabilityCtrl::class, 'destroy']);
+
+        // Notifications
+        Route::get('/{teacherId}/notifications',                    [TeacherNotificationController::class, 'index']);
+        Route::put('/{teacherId}/notifications/{recipientId}/read', [TeacherNotificationController::class, 'markRead']);
+        Route::put('/{teacherId}/notifications/read-all',           [TeacherNotificationController::class, 'markAllRead']);
     });
 
     /*
